@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Dimensions, FlatList, StyleSheet, Text, View } from 'react-native'
 import { Button } from '../ui/Button'
+import { AddPetModal } from './AddPetModal'
 import { PetCard } from './PetCard'
 
 const { width } = Dimensions.get('window')
@@ -17,6 +18,7 @@ export function MyPetsGrid() {
   const [pets, setPets] = useState<Pet[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
 
   useEffect(() => {
     const fetchMyPets = async () => {
@@ -44,9 +46,17 @@ export function MyPetsGrid() {
     if (!user) {
       router.push('/auth/login')
     } else {
-      // TODO: Implementar modal de agregar mascota
-      console.log('Agregar mascota')
+      setShowAddModal(true)
     }
+  }
+
+  const handlePetAdded = () => {
+    // Recargar lista de mascotas
+    setLoading(true)
+    ApiService.fetchMyPets()
+      .then(setPets)
+      .catch((err: any) => setError(err.message))
+      .finally(() => setLoading(false))
   }
 
   const handleRetry = () => {
@@ -145,6 +155,13 @@ export function MyPetsGrid() {
         numColumns={numColumns}
         contentContainerStyle={styles.grid}
         showsVerticalScrollIndicator={false}
+      />
+      
+      {/* Modal de agregar mascota */}
+      <AddPetModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={handlePetAdded}
       />
     </View>
   )
