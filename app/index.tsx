@@ -18,7 +18,8 @@ export default function WelcomeScreen() {
         if (userType === 'refugio') {
           router.replace('/admin/refugio' as any)
         } else {
-          router.replace('/(tabs)' as any)
+          // Redirigir directamente a /home
+          router.replace('/(tabs)/home' as any)
         }
       }
     }

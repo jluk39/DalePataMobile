@@ -44,12 +44,12 @@ export default function LoginScreen() {
           // Usuarios refugio van directamente al panel admin
           router.replace('/admin/refugio' as any)
         } else {
-          // Otros usuarios van a la página principal
-          router.replace('/(tabs)' as any)
+          // Usuarios comunes van directamente a /home
+          router.replace('/(tabs)/home' as any)
         }
       } else {
-        // Fallback: ir a página principal
-        router.replace('/(tabs)' as any)
+        // Fallback: ir a /home
+        router.replace('/(tabs)/home' as any)
       }
     } catch (error: any) {
       console.error('❌ Error de login:', error)
