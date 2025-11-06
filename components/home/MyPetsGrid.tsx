@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Dimensions, FlatList, StyleSheet, Text, View } from 'react-native'
 import { Button } from '../ui/Button'
 import { AddPetModal } from './AddPetModal'
+import { EditPetModal } from './EditPetModal'
 import { PetCard } from './PetCard'
 
 const { width } = Dimensions.get('window')
@@ -19,6 +20,8 @@ export function MyPetsGrid() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedPet, setSelectedPet] = useState<Pet | null>(null)
 
   useEffect(() => {
     const fetchMyPets = async () => {
@@ -51,12 +54,49 @@ export function MyPetsGrid() {
   }
 
   const handlePetAdded = () => {
+    console.log('🔄 MyPetsGrid.handlePetAdded - Recargando lista de mascotas...')
     // Recargar lista de mascotas
     setLoading(true)
+    setError(null)
     ApiService.fetchMyPets()
-      .then(setPets)
-      .catch((err: any) => setError(err.message))
-      .finally(() => setLoading(false))
+      .then((newPets) => {
+        console.log('✅ Mascotas recargadas exitosamente:', newPets.length)
+        setPets(newPets)
+      })
+      .catch((err: any) => {
+        console.error('❌ Error al recargar mascotas:', err.message)
+        setError(err.message)
+      })
+      .finally(() => {
+        setLoading(false)
+        console.log('🏁 Recarga de mascotas finalizada')
+      })
+  }
+
+  const handleEditPet = (pet: Pet) => {
+    console.log('✏️ MyPetsGrid.handleEditPet - Editando mascota:', pet.name, 'ID:', pet.id)
+    setSelectedPet(pet)
+    setShowEditModal(true)
+    console.log('📂 Modal de edición abierto')
+  }
+
+  const handlePetEdited = (updatedPet: any) => {
+    console.log('✅ MyPetsGrid.handlePetEdited - Mascota editada:', updatedPet)
+    console.log('🔄 Actualizando lista local...')
+    
+    // Cerrar el modal primero
+    setShowEditModal(false)
+    setSelectedPet(null)
+    
+    // Recargar toda la lista para asegurar sincronización
+    console.log('🔄 Recargando lista completa desde el servidor...')
+    handlePetAdded()
+  }
+
+  const handlePetDeleted = (petId: number | string) => {
+    console.log('🗑️ Mascota eliminada, actualizando lista...', petId)
+    // Remover la mascota de la lista local
+    setPets((prevPets) => prevPets.filter((p) => p.id !== petId))
   }
 
   const handleRetry = () => {
@@ -148,7 +188,13 @@ export function MyPetsGrid() {
         data={pets}
         renderItem={({ item }) => (
           <View style={styles.cardWrapper}>
-            <PetCard pet={item} onPress={() => console.log('Ver detalles:', item.id)} />
+            <PetCard 
+              pet={item} 
+              onPress={() => console.log('Ver detalles:', item.id)}
+              showOwnerActions={true}
+              onPetEdited={handleEditPet}
+              onPetDeleted={handlePetDeleted}
+            />
           </View>
         )}
         keyExtractor={(item) => item.id.toString()}
@@ -162,6 +208,17 @@ export function MyPetsGrid() {
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSuccess={handlePetAdded}
+      />
+
+      {/* Modal de editar mascota */}
+      <EditPetModal
+        visible={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setSelectedPet(null)
+        }}
+        pet={selectedPet}
+        onSuccess={handlePetEdited}
       />
     </View>
   )

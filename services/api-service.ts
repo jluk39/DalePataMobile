@@ -36,7 +36,10 @@ export interface AdoptionRequest {
 export class ApiService {
   // Helper method for handling API responses and token expiration
   private static async handleResponse(response: Response) {
+    console.log('🔍 handleResponse - Status:', response.status, response.statusText)
+    
     if (response.status === 401) {
+      console.error('❌ 401 - Token expirado o inválido')
       // Token expired or invalid
       await this.logout()
       // Navigate to login screen
@@ -45,11 +48,15 @@ export class ApiService {
     }
     
     if (!response.ok) {
+      console.error('❌ Response not OK - Status:', response.status)
       const errorData = await response.json().catch(() => ({}))
+      console.error('❌ Error data del servidor:', JSON.stringify(errorData, null, 2))
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
     
-    return response.json()
+    const jsonData = await response.json()
+    console.log('✅ handleResponse - JSON parseado:', JSON.stringify(jsonData, null, 2))
+    return jsonData
   }
 
   // ========================================
@@ -105,26 +112,36 @@ export class ApiService {
 
   static async fetchMyPets(): Promise<Pet[]> {
     try {
+      console.log('🔐 ApiService.fetchMyPets - Obteniendo token...')
       const token = await StorageService.getToken()
       if (!token) {
+        console.error('❌ No hay token disponible')
         throw new Error('Usuario no autenticado')
       }
+      console.log('✅ Token obtenido')
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       }
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.MY_PETS}`, {
+      const url = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.MY_PETS}`
+      console.log('🌐 Solicitando mascotas del usuario:', url)
+
+      const response = await fetch(url, {
         method: 'GET',
         headers,
       })
       
+      console.log('📡 Respuesta recibida - Status:', response.status)
       const result = await this.handleResponse(response)
       
       if (!result.success) {
+        console.error('❌ Backend reportó error:', result.message)
         throw new Error(result.message || 'Error fetching my pets')
       }
+      
+      console.log('✅ Mascotas obtenidas del backend:', result.data.length)
       
       return result.data.map((pet: any) => ({
         id: pet.id,
@@ -163,30 +180,45 @@ export class ApiService {
 
   static async createPet(formData: FormData): Promise<any> {
     try {
+      console.log('🔐 ApiService.createPet - Obteniendo token...')
       const token = await StorageService.getToken()
       if (!token) {
+        console.error('❌ No hay token disponible')
         throw new Error('Usuario no autenticado. Por favor, inicia sesión.')
       }
+      console.log('✅ Token obtenido:', token.substring(0, 20) + '...')
 
       const headers: Record<string, string> = {
         'Authorization': `Bearer ${token}`,
       }
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}/mascotas`, {
+      const url = `${API_CONFIG.BASE_URL}/mascotas`
+      console.log('🌐 URL de destino:', url)
+      console.log('📋 Headers:', JSON.stringify(headers, null, 2))
+      console.log('📦 Enviando FormData...')
+
+      const response = await fetch(url, {
         method: 'POST',
         headers,
         body: formData,
       })
       
+      console.log('📡 Respuesta recibida - Status:', response.status, response.statusText)
+      console.log('📡 Response headers:', JSON.stringify(response.headers, null, 2))
+      
       const result = await this.handleResponse(response)
+      console.log('✅ handleResponse completado:', JSON.stringify(result, null, 2))
 
       if (!result.success) {
+        console.error('❌ Backend reportó error:', result.message)
         throw new Error(result.message || 'Error al registrar mascota')
       }
 
+      console.log('🎉 Mascota creada exitosamente en el backend!')
       return result.data
     } catch (error: any) {
-      console.error('Error al crear mascota:', error.message)
+      console.error('❌ ApiService.createPet - Error capturado:', error.message)
+      console.error('❌ Stack trace:', error.stack)
       throw error
     }
   }

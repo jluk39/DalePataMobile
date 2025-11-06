@@ -1,8 +1,8 @@
 import { theme } from '@/constants/theme'
-import { ApiService } from '@/services/api-service'
+import { ApiService, Pet } from '@/services/api-service'
 import { MaterialIcons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
     ActivityIndicator,
     Alert,
@@ -16,30 +16,62 @@ import {
     View,
 } from 'react-native'
 
-interface AddPetModalProps {
+interface EditPetModalProps {
   visible: boolean
   onClose: () => void
-  onSuccess: () => void
+  pet: Pet | null
+  onSuccess: (updatedPet: any) => void
 }
 
 interface ImageState {
   uri: string
   fileName: string
   type: string
+  fileSize?: number
 }
 
-export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
+export function EditPetModal({ visible, onClose, pet, onSuccess }: EditPetModalProps) {
   // Estados del formulario
   const [nombre, setNombre] = useState('')
   const [especie, setEspecie] = useState<'Perro' | 'Gato' | ''>('')
   const [sexo, setSexo] = useState<'Macho' | 'Hembra' | ''>('')
   const [raza, setRaza] = useState('')
+  const [fechaNacimiento, setFechaNacimiento] = useState('')
+  const [peso, setPeso] = useState('')
   const [color, setColor] = useState('')
+  const [tamaño, setTamaño] = useState<'Pequeño' | 'Mediano' | 'Grande' | ''>('')
   const [descripcion, setDescripcion] = useState('')
+  
   const [image, setImage] = useState<ImageState | null>(null)
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Seleccionar imagen
+  // ✅ Cargar datos de la mascota cuando se abre el modal
+  useEffect(() => {
+    if (visible && pet) {
+      console.log('📝 Cargando datos de la mascota:', pet)
+      
+      setNombre(pet.name || '')
+      setEspecie((pet.species === 'Perro' || pet.species === 'Gato') ? pet.species : '')
+      setRaza(pet.breed || '')
+      setFechaNacimiento(pet.fecha_nacimiento || '')
+      setSexo((pet.gender === 'Macho' || pet.gender === 'Hembra') ? pet.gender : '')
+      setPeso(pet.weight ? pet.weight.toString() : '')
+      setColor(pet.color || '')
+      setTamaño((pet.size === 'Pequeño' || pet.size === 'Mediano' || pet.size === 'Grande') ? pet.size : '')
+      setDescripcion(pet.description || '')
+      
+      // Cargar imagen existente
+      if (pet.image) {
+        setExistingImageUrl(pet.image)
+      }
+      
+      // Reset nueva imagen
+      setImage(null)
+    }
+  }, [visible, pet])
+
+  // Seleccionar nueva imagen
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
 
@@ -67,167 +99,135 @@ export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
         return
       }
 
-      // Determinar el tipo MIME correcto basado en la extensión
-      let mimeType = selectedImage.mimeType || 'image/jpeg'
-      const fileUri = selectedImage.uri.toLowerCase()
+      const uri = selectedImage.uri
+      const fileExtension = uri.split('.').pop()?.toLowerCase()
+      const fileName = selectedImage.fileName || `pet_${Date.now()}.${fileExtension}`
       
-      if (fileUri.endsWith('.png')) {
-        mimeType = 'image/png'
-      } else if (fileUri.endsWith('.webp')) {
-        mimeType = 'image/webp'
-      } else if (fileUri.endsWith('.jpg') || fileUri.endsWith('.jpeg')) {
-        mimeType = 'image/jpeg'
-      }
-
-      // Generar nombre de archivo único
-      const timestamp = Date.now()
-      const extension = mimeType.split('/')[1] // 'jpeg', 'png', 'webp'
-      const fileName = selectedImage.fileName || `pet_${timestamp}.${extension}`
-
-      console.log('📸 Imagen seleccionada:', {
-        uri: selectedImage.uri,
-        fileName,
-        mimeType,
-        size: selectedImage.fileSize,
-      })
+      let mimeType = selectedImage.mimeType || 'image/jpeg'
+      if (fileExtension === 'png') mimeType = 'image/png'
+      else if (fileExtension === 'webp') mimeType = 'image/webp'
 
       setImage({
-        uri: selectedImage.uri,
+        uri,
         fileName,
         type: mimeType,
+        fileSize: selectedImage.fileSize,
       })
+      
+      // Ocultar imagen existente si se selecciona una nueva
+      setExistingImageUrl(null)
     }
   }
 
-  // Limpiar formulario
-  const resetForm = () => {
-    setNombre('')
-    setEspecie('')
-    setSexo('')
-    setRaza('')
-    setColor('')
-    setDescripcion('')
+  // Restaurar imagen original
+  const restoreOriginalImage = () => {
     setImage(null)
+    if (pet?.image) {
+      setExistingImageUrl(pet.image)
+    }
   }
 
   // Validar y enviar
   const handleSubmit = async () => {
-    console.log('🚀 INICIO handleSubmit')
-    console.log('📝 Datos del formulario:', {
-      nombre: nombre.trim(),
-      especie,
-      sexo,
-      raza: raza.trim(),
-      color: color.trim(),
-      descripcion: descripcion.trim(),
-      tieneImagen: !!image,
-    })
-
-    // Validar campos obligatorios
-    const camposFaltantes = []
-    
-    if (!nombre.trim()) {
-      camposFaltantes.push('Nombre')
-    }
-    if (!especie) {
-      camposFaltantes.push('Especie')
-    }
-    if (!sexo) {
-      camposFaltantes.push('Sexo')
-    }
-
-    if (camposFaltantes.length > 0) {
-      const mensajeError = `Faltan campos obligatorios: ${camposFaltantes.join(', ')}`
-      console.error('❌ VALIDACIÓN FALLIDA:', mensajeError)
-      Alert.alert('Error', mensajeError)
+    if (!pet) {
+      Alert.alert('Error', 'No se encontró la mascota')
       return
     }
 
-    console.log('✅ Validación exitosa, iniciando proceso de guardado...')
+    // ✅ Validar campos obligatorios
+    if (!nombre.trim()) {
+      Alert.alert('Error', 'El nombre es obligatorio')
+      return
+    }
+    if (!especie) {
+      Alert.alert('Error', 'Debes seleccionar una especie')
+      return
+    }
+    if (!sexo) {
+      Alert.alert('Error', 'Debes seleccionar el sexo')
+      return
+    }
+
     setLoading(true)
 
     try {
-      // Crear FormData
+      // ✅ Crear FormData
       const formData = new FormData()
       
       // Campos obligatorios
-      console.log('📋 Agregando campos obligatorios al FormData...')
       formData.append('nombre', nombre.trim())
       formData.append('especie', especie)
       formData.append('sexo', sexo)
       
-      // Valores por defecto
+      // Valores por defecto (para usuarios)
       formData.append('estado_salud', 'Saludable')
       formData.append('en_adopcion', 'false')
       
-      // Campos opcionales
+      // ✅ Campos opcionales (solo si tienen valor)
       if (raza.trim()) {
-        console.log('📋 Agregando raza:', raza.trim())
         formData.append('raza', raza.trim())
       }
+      if (fechaNacimiento) {
+        formData.append('fecha_nacimiento', fechaNacimiento)
+      }
+      if (peso && parseFloat(peso) > 0) {
+        formData.append('peso', peso)
+      }
       if (color.trim()) {
-        console.log('📋 Agregando color:', color.trim())
         formData.append('color', color.trim())
       }
+      if (tamaño) {
+        formData.append('tamaño', tamaño)
+      }
       if (descripcion.trim()) {
-        console.log('📋 Agregando descripción:', descripcion.trim())
         formData.append('descripcion', descripcion.trim())
       }
       
-      // Imagen - Estructura específica para React Native FormData
+      // ✅ Agregar nueva imagen (solo si se seleccionó una)
       if (image) {
-        const imageToUpload: any = {
+        const imageFile: any = {
           uri: image.uri,
           name: image.fileName,
           type: image.type,
         }
         
-        console.log('📸 IMAGEN A SUBIR:', JSON.stringify(imageToUpload, null, 2))
-        formData.append('imagen', imageToUpload)
-      } else {
-        console.log('⚠️ NO hay imagen para subir')
+        console.log('📤 Enviando nueva imagen:', imageFile)
+        formData.append('imagen', imageFile)
       }
 
-      console.log('📤 ENVIANDO FormData al backend...')
-      
-      // Enviar al backend
-      const resultado = await ApiService.createPet(formData)
-      
-      console.log('✅ RESPUESTA DEL SERVIDOR:', resultado)
-      console.log('🎉 Mascota creada exitosamente!')
+      console.log('📤 Actualizando mascota...')
 
-      // Limpiar formulario
-      console.log('🧹 Limpiando formulario...')
-      resetForm()
+      // ✅ Enviar al backend
+      const updatedPet = await ApiService.updatePet(pet.id, formData)
 
-      // Cerrar modal primero
-      console.log('🚪 Cerrando modal...')
+      console.log('✅ Mascota actualizada:', updatedPet)
+
+      // Cerrar modal primero para mejor UX
       onClose()
+      
+      // Llamar al callback para actualizar la lista
+      onSuccess(updatedPet)
 
-      // Mostrar alerta de éxito
-      console.log('📢 Mostrando alerta de éxito...')
-      Alert.alert(
-        '✅ Éxito',
-        `Mascota "${resultado.nombre || nombre}" registrada correctamente`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              console.log('👤 Usuario cerró la alerta, llamando onSuccess...')
-              onSuccess()
-            },
-          },
-        ]
-      )
+      // Mostrar mensaje de éxito después (no bloqueante)
+      setTimeout(() => {
+        Alert.alert(
+          '✅ Éxito',
+          `${updatedPet.nombre || nombre} ha sido actualizado exitosamente`
+        )
+      }, 300)
     } catch (error: any) {
-      console.error('❌ ERROR AL CREAR MASCOTA:', error)
-      console.error('❌ Error message:', error.message)
-      console.error('❌ Error stack:', error.stack)
-      Alert.alert('Error', error.message || 'No se pudo registrar la mascota')
+      console.error('❌ Error al actualizar mascota:', error)
+      Alert.alert('Error', error.message || 'No se pudo actualizar la mascota')
     } finally {
       setLoading(false)
-      console.log('🏁 FIN handleSubmit')
     }
+  }
+
+  // Imagen actual (nueva o existente)
+  const currentImageUri = image ? image.uri : existingImageUrl
+
+  if (!pet) {
+    return null
   }
 
   return (
@@ -236,7 +236,7 @@ export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Agregar Mascota</Text>
+            <Text style={styles.title}>Editar {nombre || 'Mascota'}</Text>
             <TouchableOpacity onPress={onClose} disabled={loading}>
               <MaterialIcons name="close" size={24} color={theme.colors.foreground} />
             </TouchableOpacity>
@@ -244,6 +244,36 @@ export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
 
           {/* Content */}
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            {/* Imagen */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Foto de la mascota</Text>
+              <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage} disabled={loading}>
+                {currentImageUri ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image source={{ uri: currentImageUri }} style={styles.imagePreview} resizeMode="cover" />
+                    <TouchableOpacity
+                      style={styles.removeImageButton}
+                      onPress={image ? restoreOriginalImage : () => {}}
+                      disabled={loading}
+                    >
+                      <MaterialIcons name={image ? "undo" : "close"} size={20} color="#fff" />
+                    </TouchableOpacity>
+                    
+                    {image && (
+                      <View style={styles.imageInfo}>
+                        <Text style={styles.imageInfoText}>Nueva imagen seleccionada</Text>
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.imagePickerContent}>
+                    <MaterialIcons name="add-a-photo" size={32} color={theme.colors.primary} />
+                    <Text style={styles.imagePickerText}>Agregar foto</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
             {/* Nombre */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
@@ -251,7 +281,7 @@ export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
               </Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ej: Luna"
+                placeholder="Ej: Luna, Max"
                 value={nombre}
                 onChangeText={setNombre}
                 editable={!loading}
@@ -269,18 +299,8 @@ export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
                   onPress={() => setEspecie('Perro')}
                   disabled={loading}
                 >
-                  <MaterialIcons
-                    name="pets"
-                    size={20}
-                    color={especie === 'Perro' ? theme.colors.primaryForeground : theme.colors.foreground}
-                  />
-                  <Text
-                    style={[
-                      styles.optionText,
-                      especie === 'Perro' && styles.optionTextActive,
-                    ]}
-                  >
-                    Perro
+                  <Text style={[styles.optionText, especie === 'Perro' && styles.optionTextActive]}>
+                    🐕 Perro
                   </Text>
                 </TouchableOpacity>
 
@@ -289,18 +309,8 @@ export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
                   onPress={() => setEspecie('Gato')}
                   disabled={loading}
                 >
-                  <MaterialIcons
-                    name="pets"
-                    size={20}
-                    color={especie === 'Gato' ? theme.colors.primaryForeground : theme.colors.foreground}
-                  />
-                  <Text
-                    style={[
-                      styles.optionText,
-                      especie === 'Gato' && styles.optionTextActive,
-                    ]}
-                  >
-                    Gato
+                  <Text style={[styles.optionText, especie === 'Gato' && styles.optionTextActive]}>
+                    🐈 Gato
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -317,18 +327,8 @@ export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
                   onPress={() => setSexo('Macho')}
                   disabled={loading}
                 >
-                  <MaterialIcons
-                    name="male"
-                    size={20}
-                    color={sexo === 'Macho' ? theme.colors.primaryForeground : theme.colors.foreground}
-                  />
-                  <Text
-                    style={[
-                      styles.optionText,
-                      sexo === 'Macho' && styles.optionTextActive,
-                    ]}
-                  >
-                    Macho
+                  <Text style={[styles.optionText, sexo === 'Macho' && styles.optionTextActive]}>
+                    ♂️ Macho
                   </Text>
                 </TouchableOpacity>
 
@@ -337,24 +337,14 @@ export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
                   onPress={() => setSexo('Hembra')}
                   disabled={loading}
                 >
-                  <MaterialIcons
-                    name="female"
-                    size={20}
-                    color={sexo === 'Hembra' ? theme.colors.primaryForeground : theme.colors.foreground}
-                  />
-                  <Text
-                    style={[
-                      styles.optionText,
-                      sexo === 'Hembra' && styles.optionTextActive,
-                    ]}
-                  >
-                    Hembra
+                  <Text style={[styles.optionText, sexo === 'Hembra' && styles.optionTextActive]}>
+                    ♀️ Hembra
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Raza (opcional) */}
+            {/* Raza */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Raza (opcional)</Text>
               <TextInput
@@ -366,24 +356,69 @@ export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
               />
             </View>
 
-            {/* Color (opcional) */}
+            {/* Fecha de nacimiento */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Fecha de nacimiento (opcional)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="YYYY-MM-DD"
+                value={fechaNacimiento}
+                onChangeText={setFechaNacimiento}
+                editable={!loading}
+              />
+              <Text style={styles.hint}>Formato: YYYY-MM-DD</Text>
+            </View>
+
+            {/* Peso */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Peso (kg)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="0.0"
+                keyboardType="decimal-pad"
+                value={peso}
+                onChangeText={setPeso}
+                editable={!loading}
+              />
+            </View>
+
+            {/* Color */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Color (opcional)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ej: Dorado"
+                placeholder="Ej: Dorado, Negro"
                 value={color}
                 onChangeText={setColor}
                 editable={!loading}
               />
             </View>
 
-            {/* Descripción (opcional) */}
+            {/* Tamaño */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Tamaño (opcional)</Text>
+              <View style={styles.optionsRow}>
+                {['Pequeño', 'Mediano', 'Grande'].map((size) => (
+                  <TouchableOpacity
+                    key={size}
+                    style={[styles.option, tamaño === size && styles.optionActive]}
+                    onPress={() => setTamaño(size as any)}
+                    disabled={loading}
+                  >
+                    <Text style={[styles.optionText, tamaño === size && styles.optionTextActive]}>
+                      {size}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Descripción */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Descripción (opcional)</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Cuéntanos sobre tu mascota..."
+                placeholder="Describe a tu mascota..."
                 value={descripcion}
                 onChangeText={setDescripcion}
                 multiline
@@ -391,34 +426,6 @@ export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
                 textAlignVertical="top"
                 editable={!loading}
               />
-            </View>
-
-            {/* Imagen (opcional) */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Foto (opcional)</Text>
-              <TouchableOpacity
-                style={styles.imagePickerButton}
-                onPress={pickImage}
-                disabled={loading}
-              >
-                {image ? (
-                  <View style={styles.imagePreviewContainer}>
-                    <Image source={{ uri: image.uri }} style={styles.imagePreview} />
-                    <TouchableOpacity
-                      style={styles.removeImageButton}
-                      onPress={() => setImage(null)}
-                      disabled={loading}
-                    >
-                      <MaterialIcons name="close" size={20} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={styles.imagePickerContent}>
-                    <MaterialIcons name="add-a-photo" size={32} color={theme.colors.primary} />
-                    <Text style={styles.imagePickerText}>Agregar foto</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
             </View>
           </ScrollView>
 
@@ -440,7 +447,7 @@ export function AddPetModal({ visible, onClose, onSuccess }: AddPetModalProps) {
               {loading ? (
                 <ActivityIndicator color={theme.colors.primaryForeground} />
               ) : (
-                <Text style={styles.buttonSubmitText}>Guardar</Text>
+                <Text style={styles.buttonSubmitText}>Actualizar</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -502,6 +509,11 @@ const styles = StyleSheet.create({
   textArea: {
     height: 100,
     paddingTop: theme.spacing.md,
+  },
+  hint: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+    marginTop: 4,
   },
   optionsRow: {
     flexDirection: 'row',
@@ -568,6 +580,20 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  imageInfo: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 8,
+    borderRadius: 4,
+  },
+  imageInfoText: {
+    color: '#fff',
+    fontSize: 12,
+    textAlign: 'center',
   },
   footer: {
     flexDirection: 'row',
