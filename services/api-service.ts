@@ -884,4 +884,201 @@ export class ApiService {
       throw error
     }
   }
+
+  // ========================================
+  // ADOPTION ENDPOINTS (NEW)
+  // ========================================
+
+  /**
+   * ✅ Obtener mascotas en adopción (SIN FILTROS - filtrado client-side)
+   * Endpoint: GET /api/listarMascotas
+   * Retorna todas las mascotas disponibles para adopción
+   */
+  static async fetchPetsForAdoption(): Promise<any[]> {
+    try {
+      const token = await StorageService.getToken()
+      
+      if (!token) {
+        throw new Error('No estás autenticado')
+      }
+
+      const url = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.LIST_ADOPTION_PETS}`
+
+      console.log(`📤 GET ${url}`)
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      const result = await this.handleResponse(response)
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Error al obtener mascotas')
+      }
+
+      console.log('✅ Mascotas en adopción obtenidas:', result.data.length)
+      console.log('📦 Datos recibidos:', JSON.stringify(result.data, null, 2))
+      
+      return result.data
+    } catch (error) {
+      console.error('❌ Error fetching adoption pets:', error)
+      throw error
+    }
+  }
+
+  /**
+   * ✅ Obtener detalles de una mascota
+   */
+  static async getPetDetails(petId: number): Promise<any> {
+    try {
+      const token = await StorageService.getToken()
+      
+      if (!token) {
+        throw new Error('No estás autenticado')
+      }
+
+      console.log(`📤 GET /api/mascotas/${petId}`)
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.GET_PET(petId)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      const result = await this.handleResponse(response)
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Error al obtener detalles')
+      }
+
+      console.log('✅ Detalles de mascota obtenidos')
+      
+      return result.data
+    } catch (error) {
+      console.error('Error getting pet details:', error)
+      throw error
+    }
+  }
+
+  /**
+   * ✅ Crear solicitud de adopción (usando endpoint /adopciones)
+   */
+  static async createAdoption(data: {
+    mascota_id: number
+    tipo_vivienda: string
+    tiene_patio: string
+    permiso_propietario: boolean
+    experiencia_mascotas: string
+    mascotas_actuales: string
+    razon_adopcion: string
+    tiempo_dedicacion: string
+  }): Promise<any> {
+    try {
+      const token = await StorageService.getToken()
+      
+      if (!token) {
+        throw new Error('No estás autenticado')
+      }
+
+      console.log('📤 POST /api/adopciones', data)
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.CREATE_ADOPTION}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await this.handleResponse(response)
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Error al crear solicitud')
+      }
+
+      console.log('✅ Solicitud de adopción creada:', result.data)
+      
+      return result.data
+    } catch (error) {
+      console.error('Error creating adoption request:', error)
+      throw error
+    }
+  }
+
+  /**
+   * ✅ Obtener mis solicitudes de adopción
+   */
+  static async getMyAdoptions(): Promise<any[]> {
+    try {
+      const token = await StorageService.getToken()
+      
+      if (!token) {
+        throw new Error('No estás autenticado')
+      }
+
+      console.log('📤 GET /api/adopciones/mis-solicitudes')
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.MY_ADOPTION_REQUESTS}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      const result = await this.handleResponse(response)
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Error al obtener solicitudes')
+      }
+
+      console.log('✅ Mis solicitudes obtenidas:', result.data.length)
+      
+      return result.data
+    } catch (error) {
+      console.error('Error getting my adoptions:', error)
+      throw error
+    }
+  }
+
+  /**
+   * ✅ Cancelar solicitud de adopción
+   */
+  static async cancelAdoption(requestId: number): Promise<void> {
+    try {
+      const token = await StorageService.getToken()
+      
+      if (!token) {
+        throw new Error('No estás autenticado')
+      }
+
+      console.log(`🗑️ DELETE /api/adopciones/${requestId}`)
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.CANCEL_ADOPTION_REQUEST(requestId)}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      const result = await this.handleResponse(response)
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Error al cancelar solicitud')
+      }
+
+      console.log('✅ Solicitud cancelada')
+    } catch (error) {
+      console.error('Error canceling adoption:', error)
+      throw error
+    }
+  }
 }

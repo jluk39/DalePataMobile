@@ -1,0 +1,231 @@
+import { theme } from '@/constants/theme'
+import { MaterialIcons } from '@expo/vector-icons'
+import React, { useState } from 'react'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+
+interface Filters {
+  especie: 'all' | 'Perro' | 'Gato'
+  sexo: 'all' | 'Macho' | 'Hembra'
+  edadMin: number
+  edadMax: number
+}
+
+interface AdoptionFiltersProps {
+  onFiltersChange: (filters: Filters) => void
+}
+
+export function AdoptionFilters({ onFiltersChange }: AdoptionFiltersProps) {
+  const [filters, setFilters] = useState<Filters>({
+    especie: 'all',
+    sexo: 'all',
+    edadMin: 0,
+    edadMax: 15,
+  })
+
+  const handleSpeciesChange = (especie: 'all' | 'Perro' | 'Gato') => {
+    const newFilters = { ...filters, especie }
+    setFilters(newFilters)
+  }
+
+  const handleGenderChange = (sexo: 'all' | 'Macho' | 'Hembra') => {
+    const newFilters = { ...filters, sexo }
+    setFilters(newFilters)
+  }
+
+  const handleApplyFilters = () => {
+    onFiltersChange(filters)
+  }
+
+  const handleClearFilters = () => {
+    const clearedFilters: Filters = {
+      especie: 'all',
+      sexo: 'all',
+      edadMin: 0,
+      edadMax: 15,
+    }
+    setFilters(clearedFilters)
+    onFiltersChange(clearedFilters)
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Filtros de Búsqueda</Text>
+
+      {/* Especie */}
+      <View style={styles.filterGroup}>
+        <Text style={styles.label}>Tipo de Animal</Text>
+        <View style={styles.optionsRow}>
+          <TouchableOpacity
+            style={[styles.option, filters.especie === 'all' && styles.optionActive]}
+            onPress={() => handleSpeciesChange('all')}
+          >
+            <Text style={[styles.optionText, filters.especie === 'all' && styles.optionTextActive]}>
+              Todos
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.option, filters.especie === 'Perro' && styles.optionActive]}
+            onPress={() => handleSpeciesChange('Perro')}
+          >
+            <Text style={[styles.optionText, filters.especie === 'Perro' && styles.optionTextActive]}>
+              🐕 Perros
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.option, filters.especie === 'Gato' && styles.optionActive]}
+            onPress={() => handleSpeciesChange('Gato')}
+          >
+            <Text style={[styles.optionText, filters.especie === 'Gato' && styles.optionTextActive]}>
+              🐈 Gatos
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Sexo */}
+      <View style={styles.filterGroup}>
+        <Text style={styles.label}>Sexo</Text>
+        <View style={styles.optionsRow}>
+          <TouchableOpacity
+            style={[styles.option, filters.sexo === 'all' && styles.optionActive]}
+            onPress={() => handleGenderChange('all')}
+          >
+            <Text style={[styles.optionText, filters.sexo === 'all' && styles.optionTextActive]}>
+              Todos
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.option, filters.sexo === 'Macho' && styles.optionActive]}
+            onPress={() => handleGenderChange('Macho')}
+          >
+            <Text style={[styles.optionText, filters.sexo === 'Macho' && styles.optionTextActive]}>
+              ♂️ Macho
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.option, filters.sexo === 'Hembra' && styles.optionActive]}
+            onPress={() => handleGenderChange('Hembra')}
+          >
+            <Text style={[styles.optionText, filters.sexo === 'Hembra' && styles.optionTextActive]}>
+              ♀️ Hembra
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Edad */}
+      <View style={styles.filterGroup}>
+        <Text style={styles.label}>Edad</Text>
+        <Text style={styles.hint}>
+          {filters.edadMin} - {filters.edadMax >= 15 ? '15+' : filters.edadMax} años
+        </Text>
+      </View>
+
+      {/* Botones */}
+      <View style={styles.buttons}>
+        <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
+          <MaterialIcons name="check" size={20} color={theme.colors.primaryForeground} />
+          <Text style={styles.applyButtonText}>Aplicar Filtros</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.clearButton} onPress={handleClearFilters}>
+          <MaterialIcons name="clear" size={20} color={theme.colors.foreground} />
+          <Text style={styles.clearButtonText}>Limpiar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  title: {
+    fontSize: theme.fontSize.xl,
+    fontWeight: '600',
+    color: theme.colors.foreground,
+    marginBottom: theme.spacing.lg,
+  },
+  filterGroup: {
+    marginBottom: theme.spacing.lg,
+  },
+  label: {
+    fontSize: theme.fontSize.base,
+    fontWeight: '500',
+    color: theme.colors.foreground,
+    marginBottom: theme.spacing.sm,
+  },
+  hint: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.mutedForeground,
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  option: {
+    flex: 1,
+    padding: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.md,
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+  },
+  optionActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  optionText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.foreground,
+  },
+  optionTextActive: {
+    color: theme.colors.primaryForeground,
+    fontWeight: '600',
+  },
+  buttons: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  applyButton: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.xs,
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+  },
+  applyButtonText: {
+    color: theme.colors.primaryForeground,
+    fontSize: theme.fontSize.base,
+    fontWeight: '600',
+  },
+  clearButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.xs,
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+  },
+  clearButtonText: {
+    color: theme.colors.foreground,
+    fontSize: theme.fontSize.base,
+    fontWeight: '500',
+  },
+})

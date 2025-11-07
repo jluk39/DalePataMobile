@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
   
   // Pets
   LIST_PETS: '/mascotas',
+  LIST_ADOPTION_PETS: '/listarMascotas', // ✅ Endpoint correcto del backend
   GET_PET: (petId: number | string) => `/mascotas/${petId}`,
   CREATE_PET: '/mascotas',
   UPDATE_PET: (petId: number | string) => `/mascotas/${petId}`,
@@ -32,8 +33,11 @@ export const API_ENDPOINTS = {
   
   // Adoption Requests
   LIST_ADOPTION_REQUESTS: '/solicitudes',
+  MY_ADOPTION_REQUESTS: '/adopciones/mis-solicitudes',
   GET_ADOPTION_REQUEST: (requestId: number | string) => `/solicitudes/${requestId}`,
   CREATE_ADOPTION_REQUEST: (petId: number | string) => `/solicitudes/mascota/${petId}`,
+  CREATE_ADOPTION: '/adopciones',
+  CANCEL_ADOPTION_REQUEST: (requestId: number | string) => `/adopciones/${requestId}`,
   UPDATE_ADOPTION_REQUEST_STATUS: (requestId: number | string) => `/solicitudes/${requestId}/estado`,
 }
 
