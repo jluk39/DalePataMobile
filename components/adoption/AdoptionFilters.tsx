@@ -16,6 +16,7 @@ interface AdoptionFiltersProps {
 }
 
 export function AdoptionFilters({ onFiltersChange }: AdoptionFiltersProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
   const [filters, setFilters] = useState<Filters>({
     especie: 'all',
     sexo: 'all',
@@ -35,6 +36,7 @@ export function AdoptionFilters({ onFiltersChange }: AdoptionFiltersProps) {
 
   const handleApplyFilters = () => {
     onFiltersChange(filters)
+    setIsExpanded(false)
   }
 
   const handleClearFilters = () => {
@@ -46,14 +48,44 @@ export function AdoptionFilters({ onFiltersChange }: AdoptionFiltersProps) {
     }
     setFilters(clearedFilters)
     onFiltersChange(clearedFilters)
+    setIsExpanded(false)
+  }
+
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (filters.especie !== 'all') count++
+    if (filters.sexo !== 'all') count++
+    if (filters.edadMin > 0 || filters.edadMax < 15) count++
+    return count
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Filtros de Búsqueda</Text>
+      <TouchableOpacity 
+        style={styles.header} 
+        onPress={() => setIsExpanded(!isExpanded)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.headerLeft}>
+          <MaterialIcons name="tune" size={24} color={theme.colors.primary} />
+          <Text style={styles.title}>Filtros de Búsqueda</Text>
+          {getActiveFiltersCount() > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{getActiveFiltersCount()}</Text>
+            </View>
+          )}
+        </View>
+        <MaterialIcons 
+          name={isExpanded ? "expand-less" : "expand-more"} 
+          size={24} 
+          color={theme.colors.foreground} 
+        />
+      </TouchableOpacity>
 
-      {/* Especie */}
-      <View style={styles.filterGroup}>
+      {isExpanded && (
+        <View style={styles.content}>
+          {/* Especie */}
+          <View style={styles.filterGroup}>
         <Text style={styles.label}>Tipo de Animal</Text>
         <View style={styles.optionsRow}>
           <TouchableOpacity
@@ -172,6 +204,8 @@ export function AdoptionFilters({ onFiltersChange }: AdoptionFiltersProps) {
           <Text style={styles.clearButtonText}>Limpiar</Text>
         </TouchableOpacity>
       </View>
+        </View>
+      )}
     </View>
   )
 }
@@ -180,14 +214,44 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing.lg,
+    backgroundColor: theme.colors.card,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    flex: 1,
   },
   title: {
     fontSize: theme.fontSize.xl,
     fontWeight: '600',
     color: theme.colors.foreground,
-    marginBottom: theme.spacing.lg,
+  },
+  badge: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.xs,
+  },
+  badgeText: {
+    color: theme.colors.primaryForeground,
+    fontSize: theme.fontSize.sm,
+    fontWeight: '700',
+  },
+  content: {
+    padding: theme.spacing.lg,
+    paddingTop: 0,
   },
   filterGroup: {
     marginBottom: theme.spacing.lg,
