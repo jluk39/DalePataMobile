@@ -1,5 +1,6 @@
 import { theme } from '@/constants/theme'
 import { MaterialIcons } from '@expo/vector-icons'
+import Slider from '@react-native-community/slider'
 import React, { useState } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
@@ -123,6 +124,40 @@ export function AdoptionFilters({ onFiltersChange }: AdoptionFiltersProps) {
         <Text style={styles.hint}>
           {filters.edadMin} - {filters.edadMax >= 15 ? '15+' : filters.edadMax} años
         </Text>
+        
+        {/* Slider Edad Mínima */}
+        <View style={styles.sliderContainer}>
+          <Text style={styles.sliderLabel}>Edad mínima: {filters.edadMin} años</Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={15}
+            step={1}
+            value={filters.edadMin}
+            onValueChange={(value) => setFilters({ ...filters, edadMin: value })}
+            minimumTrackTintColor={theme.colors.primary}
+            maximumTrackTintColor={theme.colors.border}
+            thumbTintColor={theme.colors.primary}
+          />
+        </View>
+
+        {/* Slider Edad Máxima */}
+        <View style={styles.sliderContainer}>
+          <Text style={styles.sliderLabel}>
+            Edad máxima: {filters.edadMax >= 15 ? '15+' : filters.edadMax} años
+          </Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={15}
+            step={1}
+            value={filters.edadMax}
+            onValueChange={(value) => setFilters({ ...filters, edadMax: value })}
+            minimumTrackTintColor={theme.colors.primary}
+            maximumTrackTintColor={theme.colors.border}
+            thumbTintColor={theme.colors.primary}
+          />
+        </View>
       </View>
 
       {/* Botones */}
@@ -166,6 +201,20 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.mutedForeground,
+    marginBottom: theme.spacing.sm,
+  },
+  sliderContainer: {
+    marginTop: theme.spacing.md,
+  },
+  sliderLabel: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.foreground,
+    marginBottom: theme.spacing.xs,
+    fontWeight: '500',
+  },
+  slider: {
+    width: '100%',
+    height: 40,
   },
   optionsRow: {
     flexDirection: 'row',
