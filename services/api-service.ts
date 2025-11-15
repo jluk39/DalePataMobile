@@ -25,7 +25,7 @@ export interface Pet {
 
 export interface AdoptionRequest {
   housingType: string
-  hasYard: boolean
+  hasYard: string
   landlordPermission?: boolean
   petExperience: string
   currentPets: string

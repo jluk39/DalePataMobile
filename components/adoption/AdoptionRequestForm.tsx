@@ -2,16 +2,16 @@ import { theme } from '@/constants/theme';
 import { ApiService } from '@/services';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface AdoptionRequestFormProps {
@@ -24,17 +24,17 @@ interface AdoptionRequestFormProps {
 
 interface FormData {
   // Step 1: Vivienda
-  tipo_vivienda: 'casa' | 'apartamento' | 'finca' | '';
-  tiene_patio: boolean | null;
-  permiso_propietario: boolean | null;
+  housingType: 'casa' | 'departamento' | '';
+  hasYard: 'si' | 'no' | '';
+  landlordPermission: boolean | null;
 
   // Step 2: Experiencia
-  experiencia_mascotas: string;
-  mascotas_actuales: string;
+  petExperience: 'si' | 'no' | '';
+  currentPets: 'si' | 'no' | '';
 
   // Step 3: Motivación
-  razon_adopcion: string;
-  tiempo_dedicacion: string;
+  adoptionReason: string;
+  timeCommitment: string;
 }
 
 const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
@@ -47,13 +47,13 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
-    tipo_vivienda: '',
-    tiene_patio: null,
-    permiso_propietario: null,
-    experiencia_mascotas: '',
-    mascotas_actuales: '',
-    razon_adopcion: '',
-    tiempo_dedicacion: '',
+    housingType: '',
+    hasYard: '',
+    landlordPermission: null,
+    petExperience: '',
+    currentPets: '',
+    adoptionReason: '',
+    timeCommitment: '',
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -61,14 +61,11 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
   const validateStep1 = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!formData.tipo_vivienda) {
-      newErrors.tipo_vivienda = 'Selecciona un tipo de vivienda';
+    if (!formData.housingType) {
+      newErrors.housingType = 'Selecciona el tipo de vivienda';
     }
-    if (formData.tiene_patio === null) {
-      newErrors.tiene_patio = 'Indica si tienes patio';
-    }
-    if (formData.tipo_vivienda === 'apartamento' && formData.permiso_propietario === null) {
-      newErrors.permiso_propietario = 'Indica si tienes permiso';
+    if (!formData.hasYard) {
+      newErrors.hasYard = 'Indica si tienes patio';
     }
 
     setErrors(newErrors);
@@ -78,11 +75,11 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
   const validateStep2 = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (formData.experiencia_mascotas.trim().length < 10) {
-      newErrors.experiencia_mascotas = 'Describe tu experiencia (mínimo 10 caracteres)';
+    if (!formData.petExperience) {
+      newErrors.petExperience = 'Indica si has tenido mascotas antes';
     }
-    if (formData.mascotas_actuales.trim().length < 5) {
-      newErrors.mascotas_actuales = 'Describe tus mascotas actuales (mínimo 5 caracteres)';
+    if (!formData.currentPets) {
+      newErrors.currentPets = 'Indica si tienes mascotas actualmente';
     }
 
     setErrors(newErrors);
@@ -92,11 +89,13 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
   const validateStep3 = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (formData.razon_adopcion.trim().length < 20) {
-      newErrors.razon_adopcion = 'Describe tu motivación (mínimo 20 caracteres)';
+    if (!formData.adoptionReason.trim()) {
+      newErrors.adoptionReason = 'Explica tu motivación para adoptar';
+    } else if (formData.adoptionReason.trim().length < 20) {
+      newErrors.adoptionReason = 'Proporciona más detalles (mínimo 20 caracteres)';
     }
-    if (formData.tiempo_dedicacion.trim().length < 10) {
-      newErrors.tiempo_dedicacion = 'Describe el tiempo disponible (mínimo 10 caracteres)';
+    if (!formData.timeCommitment.trim()) {
+      newErrors.timeCommitment = 'Indica el tiempo que puedes dedicar';
     }
 
     setErrors(newErrors);
@@ -123,19 +122,18 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
 
     setLoading(true);
     try {
-      // Convert boolean to string for API
+      // Estructura correcta según el backend
       const submissionData = {
-        mascota_id: petId,
-        tipo_vivienda: formData.tipo_vivienda,
-        tiene_patio: formData.tiene_patio ? 'si' : 'no',
-        permiso_propietario: formData.permiso_propietario === true,
-        experiencia_mascotas: formData.experiencia_mascotas,
-        mascotas_actuales: formData.mascotas_actuales,
-        razon_adopcion: formData.razon_adopcion,
-        tiempo_dedicacion: formData.tiempo_dedicacion,
+        housingType: formData.housingType,
+        hasYard: formData.hasYard,
+        landlordPermission: formData.landlordPermission || false,
+        petExperience: formData.petExperience,
+        currentPets: formData.currentPets,
+        adoptionReason: formData.adoptionReason,
+        timeCommitment: formData.timeCommitment,
       };
 
-      await ApiService.createAdoption(submissionData);
+      await ApiService.createAdoptionRequest(petId, submissionData);
 
       // Close modal first
       onClose();
@@ -143,11 +141,11 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
       // Show success message
       setTimeout(() => {
         if (Platform.OS === 'web') {
-          window.alert(`¡Solicitud enviada! Tu solicitud de adopción para ${petName} ha sido enviada exitosamente.`);
+          window.alert(`✅ ¡Solicitud Enviada!\n\nTu solicitud de adopción para ${petName} ha sido enviada exitosamente.\n\nEl refugio revisará tu solicitud y se pondrá en contacto contigo pronto.\nRecibirás una notificación por email cuando haya novedades.`);
         } else {
           Alert.alert(
-            '¡Solicitud enviada!',
-            `Tu solicitud de adopción para ${petName} ha sido enviada exitosamente.`,
+            '✅ ¡Solicitud Enviada!',
+            `Tu solicitud de adopción para ${petName} ha sido enviada exitosamente.\n\nEl refugio revisará tu solicitud y se pondrá en contacto contigo pronto.\nRecibirás una notificación por email cuando haya novedades.`,
             [{ text: 'OK' }]
           );
         }
@@ -168,13 +166,13 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
   const handleClose = () => {
     setCurrentStep(1);
     setFormData({
-      tipo_vivienda: '',
-      tiene_patio: null,
-      permiso_propietario: null,
-      experiencia_mascotas: '',
-      mascotas_actuales: '',
-      razon_adopcion: '',
-      tiempo_dedicacion: '',
+      housingType: '',
+      hasYard: '',
+      landlordPermission: null,
+      petExperience: '',
+      currentPets: '',
+      adoptionReason: '',
+      timeCommitment: '',
     });
     setErrors({});
     onClose();
@@ -220,21 +218,21 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
       {/* Tipo de Vivienda */}
       <Text style={styles.label}>Tipo de vivienda *</Text>
       <View style={styles.optionsRow}>
-        {['casa', 'apartamento', 'finca'].map((tipo) => (
+        {['casa', 'departamento'].map((tipo) => (
           <TouchableOpacity
             key={tipo}
             style={[
               styles.option,
-              formData.tipo_vivienda === tipo && styles.optionSelected,
+              formData.housingType === tipo && styles.optionSelected,
             ]}
             onPress={() =>
-              setFormData({ ...formData, tipo_vivienda: tipo as any })
+              setFormData({ ...formData, housingType: tipo as any })
             }
           >
             <Text
               style={[
                 styles.optionText,
-                formData.tipo_vivienda === tipo && styles.optionTextSelected,
+                formData.housingType === tipo && styles.optionTextSelected,
               ]}
             >
               {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
@@ -242,8 +240,8 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
           </TouchableOpacity>
         ))}
       </View>
-      {errors.tipo_vivienda && (
-        <Text style={styles.errorText}>{errors.tipo_vivienda}</Text>
+      {errors.housingType && (
+        <Text style={styles.errorText}>{errors.housingType}</Text>
       )}
 
       {/* Tiene Patio */}
@@ -252,14 +250,14 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
         <TouchableOpacity
           style={[
             styles.option,
-            formData.tiene_patio === true && styles.optionSelected,
+            formData.hasYard === 'si' && styles.optionSelected,
           ]}
-          onPress={() => setFormData({ ...formData, tiene_patio: true })}
+          onPress={() => setFormData({ ...formData, hasYard: 'si' })}
         >
           <Text
             style={[
               styles.optionText,
-              formData.tiene_patio === true && styles.optionTextSelected,
+              formData.hasYard === 'si' && styles.optionTextSelected,
             ]}
           >
             Sí
@@ -268,75 +266,68 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
         <TouchableOpacity
           style={[
             styles.option,
-            formData.tiene_patio === false && styles.optionSelected,
+            formData.hasYard === 'no' && styles.optionSelected,
           ]}
-          onPress={() => setFormData({ ...formData, tiene_patio: false })}
+          onPress={() => setFormData({ ...formData, hasYard: 'no' })}
         >
           <Text
             style={[
               styles.optionText,
-              formData.tiene_patio === false && styles.optionTextSelected,
+              formData.hasYard === 'no' && styles.optionTextSelected,
             ]}
           >
             No
           </Text>
         </TouchableOpacity>
       </View>
-      {errors.tiene_patio && (
-        <Text style={styles.errorText}>{errors.tiene_patio}</Text>
+      {errors.hasYard && (
+        <Text style={styles.errorText}>{errors.hasYard}</Text>
       )}
 
-      {/* Permiso Propietario (solo si es apartamento) */}
-      {formData.tipo_vivienda === 'apartamento' && (
-        <>
-          <Text style={[styles.label, styles.labelSpaced]}>
-            ¿Tienes permiso del propietario? *
+      {/* Permiso Propietario (opcional para el backend) */}
+      <Text style={[styles.label, styles.labelSpaced]}>
+        ¿Alquilas? ¿Tienes permiso del propietario?
+      </Text>
+      <View style={styles.optionsRow}>
+        <TouchableOpacity
+          style={[
+            styles.option,
+            formData.landlordPermission === true && styles.optionSelected,
+          ]}
+          onPress={() =>
+            setFormData({ ...formData, landlordPermission: true })
+          }
+        >
+          <Text
+            style={[
+              styles.optionText,
+              formData.landlordPermission === true &&
+                styles.optionTextSelected,
+            ]}
+          >
+            Sí
           </Text>
-          <View style={styles.optionsRow}>
-            <TouchableOpacity
-              style={[
-                styles.option,
-                formData.permiso_propietario === true && styles.optionSelected,
-              ]}
-              onPress={() =>
-                setFormData({ ...formData, permiso_propietario: true })
-              }
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  formData.permiso_propietario === true &&
-                    styles.optionTextSelected,
-                ]}
-              >
-                Sí
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.option,
-                formData.permiso_propietario === false && styles.optionSelected,
-              ]}
-              onPress={() =>
-                setFormData({ ...formData, permiso_propietario: false })
-              }
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  formData.permiso_propietario === false &&
-                    styles.optionTextSelected,
-                ]}
-              >
-                No
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {errors.permiso_propietario && (
-            <Text style={styles.errorText}>{errors.permiso_propietario}</Text>
-          )}
-        </>
-      )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.option,
+            formData.landlordPermission === false && styles.optionSelected,
+          ]}
+          onPress={() =>
+            setFormData({ ...formData, landlordPermission: false })
+          }
+        >
+          <Text
+            style={[
+              styles.optionText,
+              formData.landlordPermission === false &&
+                styles.optionTextSelected,
+            ]}
+          >
+            No / No Aplica
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -344,40 +335,86 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Experiencia con Mascotas</Text>
 
-      {/* Experiencia */}
-      <Text style={styles.label}>Experiencia previa con mascotas *</Text>
-      <TextInput
-        style={[styles.textArea, errors.experiencia_mascotas && styles.inputError]}
-        multiline
-        numberOfLines={4}
-        placeholder="Describe tu experiencia con mascotas (mínimo 10 caracteres)"
-        placeholderTextColor={theme.colors.mutedForeground}
-        value={formData.experiencia_mascotas}
-        onChangeText={(text) =>
-          setFormData({ ...formData, experiencia_mascotas: text })
-        }
-      />
-      {errors.experiencia_mascotas && (
-        <Text style={styles.errorText}>{errors.experiencia_mascotas}</Text>
+      {/* Experiencia Previa */}
+      <Text style={styles.label}>¿Has tenido mascotas antes? *</Text>
+      <View style={styles.optionsRow}>
+        <TouchableOpacity
+          style={[
+            styles.option,
+            formData.petExperience === 'si' && styles.optionSelected,
+          ]}
+          onPress={() => setFormData({ ...formData, petExperience: 'si' })}
+        >
+          <Text
+            style={[
+              styles.optionText,
+              formData.petExperience === 'si' && styles.optionTextSelected,
+            ]}
+          >
+            Sí
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.option,
+            formData.petExperience === 'no' && styles.optionSelected,
+          ]}
+          onPress={() => setFormData({ ...formData, petExperience: 'no' })}
+        >
+          <Text
+            style={[
+              styles.optionText,
+              formData.petExperience === 'no' && styles.optionTextSelected,
+            ]}
+          >
+            No
+          </Text>
+        </TouchableOpacity>
+      </View>
+      {errors.petExperience && (
+        <Text style={styles.errorText}>{errors.petExperience}</Text>
       )}
 
       {/* Mascotas Actuales */}
       <Text style={[styles.label, styles.labelSpaced]}>
-        Mascotas actuales en el hogar *
+        ¿Tienes mascotas actualmente? *
       </Text>
-      <TextInput
-        style={[styles.textArea, errors.mascotas_actuales && styles.inputError]}
-        multiline
-        numberOfLines={3}
-        placeholder="Describe las mascotas que tienes actualmente (mínimo 5 caracteres, escribe 'ninguna' si no tienes)"
-        placeholderTextColor={theme.colors.mutedForeground}
-        value={formData.mascotas_actuales}
-        onChangeText={(text) =>
-          setFormData({ ...formData, mascotas_actuales: text })
-        }
-      />
-      {errors.mascotas_actuales && (
-        <Text style={styles.errorText}>{errors.mascotas_actuales}</Text>
+      <View style={styles.optionsRow}>
+        <TouchableOpacity
+          style={[
+            styles.option,
+            formData.currentPets === 'si' && styles.optionSelected,
+          ]}
+          onPress={() => setFormData({ ...formData, currentPets: 'si' })}
+        >
+          <Text
+            style={[
+              styles.optionText,
+              formData.currentPets === 'si' && styles.optionTextSelected,
+            ]}
+          >
+            Sí
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.option,
+            formData.currentPets === 'no' && styles.optionSelected,
+          ]}
+          onPress={() => setFormData({ ...formData, currentPets: 'no' })}
+        >
+          <Text
+            style={[
+              styles.optionText,
+              formData.currentPets === 'no' && styles.optionTextSelected,
+            ]}
+          >
+            No
+          </Text>
+        </TouchableOpacity>
+      </View>
+      {errors.currentPets && (
+        <Text style={styles.errorText}>{errors.currentPets}</Text>
       )}
     </View>
   );
@@ -389,37 +426,37 @@ const AdoptionRequestForm: React.FC<AdoptionRequestFormProps> = ({
       {/* Razón de Adopción */}
       <Text style={styles.label}>¿Por qué quieres adoptar a {petName}? *</Text>
       <TextInput
-        style={[styles.textArea, errors.razon_adopcion && styles.inputError]}
+        style={[styles.textArea, errors.adoptionReason && styles.inputError]}
         multiline
         numberOfLines={4}
         placeholder="Describe tu motivación para adoptar (mínimo 20 caracteres)"
         placeholderTextColor={theme.colors.mutedForeground}
-        value={formData.razon_adopcion}
+        value={formData.adoptionReason}
         onChangeText={(text) =>
-          setFormData({ ...formData, razon_adopcion: text })
+          setFormData({ ...formData, adoptionReason: text })
         }
       />
-      {errors.razon_adopcion && (
-        <Text style={styles.errorText}>{errors.razon_adopcion}</Text>
+      {errors.adoptionReason && (
+        <Text style={styles.errorText}>{errors.adoptionReason}</Text>
       )}
 
       {/* Tiempo Dedicación */}
       <Text style={[styles.label, styles.labelSpaced]}>
-        ¿Cuánto tiempo puedes dedicarle? *
+        ¿Cuánto tiempo puedes dedicarle diariamente? *
       </Text>
       <TextInput
-        style={[styles.textArea, errors.tiempo_dedicacion && styles.inputError]}
+        style={[styles.textArea, errors.timeCommitment && styles.inputError]}
         multiline
         numberOfLines={3}
-        placeholder="Describe el tiempo que puedes dedicarle diariamente (mínimo 10 caracteres)"
+        placeholder="Ejemplo: 3-4 horas diarias, paseos mañana y tarde"
         placeholderTextColor={theme.colors.mutedForeground}
-        value={formData.tiempo_dedicacion}
+        value={formData.timeCommitment}
         onChangeText={(text) =>
-          setFormData({ ...formData, tiempo_dedicacion: text })
+          setFormData({ ...formData, timeCommitment: text })
         }
       />
-      {errors.tiempo_dedicacion && (
-        <Text style={styles.errorText}>{errors.tiempo_dedicacion}</Text>
+      {errors.timeCommitment && (
+        <Text style={styles.errorText}>{errors.timeCommitment}</Text>
       )}
     </View>
   );
