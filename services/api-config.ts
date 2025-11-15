@@ -33,11 +33,11 @@ export const API_ENDPOINTS = {
   
   // Adoption Requests
   LIST_ADOPTION_REQUESTS: '/solicitudes',
-  MY_ADOPTION_REQUESTS: '/adopciones/mis-solicitudes',
+  MY_ADOPTION_REQUESTS: '/solicitudes/mis-solicitudes', // ✅ Endpoint correcto
   GET_ADOPTION_REQUEST: (requestId: number | string) => `/solicitudes/${requestId}`,
   CREATE_ADOPTION_REQUEST: (petId: number | string) => `/solicitudes/mascota/${petId}`,
   CREATE_ADOPTION: '/adopciones',
-  CANCEL_ADOPTION_REQUEST: (requestId: number | string) => `/adopciones/${requestId}`,
+  CANCEL_ADOPTION_REQUEST: (requestId: number | string) => `/solicitudes/${requestId}/cancelar`, // ✅ Endpoint correcto
   UPDATE_ADOPTION_REQUEST_STATUS: (requestId: number | string) => `/solicitudes/${requestId}/estado`,
 }
 

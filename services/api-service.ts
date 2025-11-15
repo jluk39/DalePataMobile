@@ -1023,7 +1023,7 @@ export class ApiService {
         throw new Error('No estás autenticado')
       }
 
-      console.log('📤 GET /api/adopciones/mis-solicitudes')
+      console.log('📤 GET /api/solicitudes/mis-solicitudes')
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.MY_ADOPTION_REQUESTS}`, {
         method: 'GET',
@@ -1039,7 +1039,7 @@ export class ApiService {
         throw new Error(result.message || 'Error al obtener solicitudes')
       }
 
-      console.log('✅ Mis solicitudes obtenidas:', result.data.length)
+      console.log('✅ Mis solicitudes obtenidas:', result.data?.length || 0)
       
       return result.data
     } catch (error) {
@@ -1059,10 +1059,10 @@ export class ApiService {
         throw new Error('No estás autenticado')
       }
 
-      console.log(`🗑️ DELETE /api/adopciones/${requestId}`)
+      console.log(`🗑️ PUT /api/solicitudes/${requestId}/cancelar`)
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.CANCEL_ADOPTION_REQUEST(requestId)}`, {
-        method: 'DELETE',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -1080,5 +1080,19 @@ export class ApiService {
       console.error('Error canceling adoption:', error)
       throw error
     }
+  }
+
+  /**
+   * ✅ Alias para getMyAdoptions (compatibilidad con frontend web)
+   */
+  static async getMyAdoptionRequests(): Promise<any[]> {
+    return this.getMyAdoptions()
+  }
+
+  /**
+   * ✅ Alias para cancelAdoption (compatibilidad con frontend web)
+   */
+  static async cancelAdoptionRequest(requestId: number): Promise<void> {
+    return this.cancelAdoption(requestId)
   }
 }
