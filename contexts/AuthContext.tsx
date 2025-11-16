@@ -1,4 +1,5 @@
 import { ApiService } from '@/services'
+import { router } from 'expo-router'
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react'
 
 interface User {
@@ -76,10 +77,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
             .catch(error => {
               console.log('⚠️ Background profile verification failed:', error.message)
               // Solo limpiar si es error 401/403 (no autorizado)
-              if (error.message.includes('401') || error.message.includes('403') || error.message.includes('Token')) {
-                console.log('🚫 Invalid token, clearing auth')
-                ApiService.logout()
-                setUser(null)
+              if (error.message.includes('401') || error.message.includes('403') || error.message.includes('Token') || error.message.includes('Sesión expirada')) {
+                console.log('🚫 Invalid token, clearing auth and redirecting to login')
+                ApiService.logout().then(() => {
+                  setUser(null)
+                  // Forzar navegación al login
+                  if (router && router.replace) {
+                    router.replace('/auth/login' as any)
+                  }
+                })
               }
               // Para otros errores (red, servidor), mantener la sesión local
             })
