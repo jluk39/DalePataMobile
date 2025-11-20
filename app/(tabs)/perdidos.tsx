@@ -1,10 +1,10 @@
 import LostFoundCard from '@/components/perdidos/LostFoundCard';
 import MapaPerdidos from '@/components/perdidos/MapaPerdidos';
+import ReportFoundPetForm from '@/components/perdidos/ReportFoundPetForm';
 import { theme } from '@/constants/theme';
 import { ApiService } from '@/services';
 import { LostPet } from '@/types/lostPets';
 import { MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -28,6 +28,7 @@ export default function PerdidosScreen() {
   const [lostPets, setLostPets] = useState<LostPet[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showReportFoundModal, setShowReportFoundModal] = useState(false);
 
   // ✅ Cargar mascotas perdidas desde el backend
   const loadLostPets = useCallback(async () => {
@@ -58,8 +59,13 @@ export default function PerdidosScreen() {
   }, [loadLostPets]);
 
   const handleReportPet = () => {
-    // Navegar al formulario de reportar mascota encontrada
-    router.push('/(tabs)/perdidos/reportar' as any);
+    // Abrir modal de reportar mascota encontrada (SIN dueño)
+    setShowReportFoundModal(true);
+  };
+
+  const handleReportFoundSuccess = () => {
+    setShowReportFoundModal(false);
+    loadLostPets(); // Recargar la lista
   };
 
   // Renderizar tarjeta de mascota
@@ -194,6 +200,15 @@ export default function PerdidosScreen() {
         </>
       ) : (
         renderMapView()
+      )}
+
+      {/* Modal de reportar mascota encontrada */}
+      {showReportFoundModal && (
+        <ReportFoundPetForm
+          visible={showReportFoundModal}
+          onClose={() => setShowReportFoundModal(false)}
+          onSuccess={handleReportFoundSuccess}
+        />
       )}
     </SafeAreaView>
   );

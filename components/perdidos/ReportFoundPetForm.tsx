@@ -5,12 +5,12 @@ import { ApiService } from '@/services';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     Image,
+    Modal,
     Platform,
     ScrollView,
     StyleSheet,
@@ -27,7 +27,13 @@ interface LocationData {
   lon: number;
 }
 
-export default function ReportFoundPetForm() {
+interface ReportFoundPetFormProps {
+  visible: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+export default function ReportFoundPetForm({ visible, onClose, onSuccess }: ReportFoundPetFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
@@ -153,7 +159,9 @@ export default function ReportFoundPetForm() {
         [
           {
             text: 'OK',
-            onPress: () => router.back(),
+            onPress: () => {
+              onSuccess();
+            },
           },
         ]
       );
@@ -166,12 +174,18 @@ export default function ReportFoundPetForm() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <MaterialIcons name="arrow-back" size={24} color={theme.colors.foreground} />
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={styles.container}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onClose} style={styles.backButton}>
+              <MaterialIcons name="close" size={24} color={theme.colors.foreground} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Reportar Mascota Encontrada</Text>
         </View>
@@ -461,6 +475,7 @@ export default function ReportFoundPetForm() {
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
+    </Modal>
   );
 }
 

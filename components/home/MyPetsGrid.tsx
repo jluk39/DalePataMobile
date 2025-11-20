@@ -4,7 +4,7 @@ import { ApiService, Pet } from '@/services/api-service'
 import { MaterialIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Dimensions, FlatList, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Dimensions, FlatList, StyleSheet, Text, View } from 'react-native'
 import { Button } from '../ui/Button'
 import { AddPetModal } from './AddPetModal'
 import { EditPetModal } from './EditPetModal'
@@ -107,6 +107,30 @@ export function MyPetsGrid() {
     setShowReportLostModal(true)
   }
 
+  const handleMarkAsFound = async (pet: Pet) => {
+    console.log('✅ Marcando mascota como encontrada:', pet.name)
+    Alert.alert(
+      'Marcar como Encontrada',
+      `¿Confirmas que ${pet.name} ha sido encontrada?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, marcar',
+          onPress: async () => {
+            try {
+              await ApiService.markPetAsFound(pet.id.toString());
+              Alert.alert('¡Éxito!', `${pet.name} ha sido marcada como encontrada.`);
+              handlePetAdded(); // Recargar lista
+            } catch (error: any) {
+              console.error('Error marking pet as found:', error);
+              Alert.alert('Error', error.message || 'No se pudo marcar la mascota como encontrada.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleRetry = () => {
     setError(null)
     setLoading(true)
@@ -203,6 +227,7 @@ export function MyPetsGrid() {
               onPetEdited={handleEditPet}
               onPetDeleted={handlePetDeleted}
               onReportLost={handleReportLost}
+              onMarkAsFound={handleMarkAsFound}
             />
           </View>
         )}

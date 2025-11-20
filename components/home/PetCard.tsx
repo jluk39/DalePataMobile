@@ -11,10 +11,14 @@ interface PetCardProps {
   onPetEdited?: (pet: Pet) => void
   onPetDeleted?: (petId: number | string) => void
   onReportLost?: (pet: Pet) => void
+  onMarkAsFound?: (pet: Pet) => void
 }
 
-export function PetCard({ pet, onPress, showOwnerActions = false, onPetEdited, onPetDeleted, onReportLost }: PetCardProps) {
+export function PetCard({ pet, onPress, showOwnerActions = false, onPetEdited, onPetDeleted, onReportLost, onMarkAsFound }: PetCardProps) {
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Verificar si la mascota está reportada como perdida
+  const isLost = pet.perdida === true || pet.status === 'Perdida';
 
   const handleEditClick = () => {
     console.log('🔵 Botón Editar presionado para:', pet.name)
@@ -171,15 +175,28 @@ export function PetCard({ pet, onPress, showOwnerActions = false, onPetEdited, o
             <Text style={styles.actionButtonText}>Editar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.actionButton, styles.reportButton]}
-            onPress={() => onReportLost && onReportLost(pet)}
-            disabled={isDeleting}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="location-off" size={18} color="#FFF" />
-            <Text style={styles.reportButtonText}>Perdida</Text>
-          </TouchableOpacity>
+          {/* Botón condicional: Perdida o Marcar como Encontrada */}
+          {isLost ? (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.foundButton]}
+              onPress={() => onMarkAsFound && onMarkAsFound(pet)}
+              disabled={isDeleting}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="check-circle" size={18} color="#FFF" />
+              <Text style={styles.foundButtonText}>Marcar como Encontrada</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.reportButton]}
+              onPress={() => onReportLost && onReportLost(pet)}
+              disabled={isDeleting}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="location-off" size={18} color="#FFF" />
+              <Text style={styles.reportButtonText}>Perdida</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={[styles.actionButton, styles.deleteButton, isDeleting && styles.actionButtonDisabled]}
@@ -268,6 +285,9 @@ const styles = StyleSheet.create({
   reportButton: {
     backgroundColor: '#F97316', // Orange/warning color
   },
+  foundButton: {
+    backgroundColor: '#10B981', // Green for found/success
+  },
   deleteButton: {
     backgroundColor: theme.colors.destructive,
   },
@@ -277,6 +297,11 @@ const styles = StyleSheet.create({
     color: theme.colors.primaryForeground,
   },
   reportButtonText: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  foundButtonText: {
     fontSize: theme.fontSize.sm,
     fontWeight: '600',
     color: '#fff',

@@ -45,32 +45,6 @@ const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet, onPetUpdated }) => {
     });
   };
 
-  const handleMarkAsFound = async () => {
-    Alert.alert(
-      'Marcar como Encontrada',
-      '¿Estás seguro de que quieres marcar esta mascota como encontrada?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sí, marcar',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              await ApiService.markPetAsFound(pet.id.toString());
-              Alert.alert('¡Éxito!', 'La mascota ha sido marcada como encontrada.');
-              onPetUpdated?.();
-            } catch (error: any) {
-              console.error('Error marking pet as found:', error);
-              Alert.alert('Error', error.message || 'No se pudo marcar la mascota como encontrada.');
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleDeleteReport = async () => {
     Alert.alert(
       'Eliminar Reporte',
@@ -98,21 +72,16 @@ const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet, onPetUpdated }) => {
     );
   };
 
-  // Lógica de ownership según documentación:
-  // - Si tiene dueño (duenio): el dueño puede marcar como encontrada
-  // - Si tiene reportado_por (sin dueño): el reportante puede marcar como encontrada o eliminar
+  // Lógica de ownership según documentación y frontend-web:
+  // EN PERDIDOS solo aparecen mascotas SIN dueño (reportado_por pero sin duenio)
+  // - El reportante puede ELIMINAR su reporte (botón rojo)
+  // - NO se muestra "Marcar como encontrada" aquí (eso es en Mis Mascotas)
   const hasDuenio = !!pet.duenio;
-  
-  // El usuario es dueño si pet.duenio.id === user.id
-  const isOwner = user && pet.duenio && pet.duenio.id === user.id;
   
   // El usuario es reportante si pet.reportado_por.id === user.id
   const isReporter = user && pet.reportado_por && pet.reportado_por.id === user.id;
   
-  // Puede marcar como encontrada: dueño O reportante
-  const canMarkAsFound = isOwner || isReporter;
-  
-  // Puede eliminar: solo reportante Y sin dueño
+  // En la sección Perdidos: solo puede ELIMINAR el reportante Y sin dueño
   const canDelete = isReporter && !hasDuenio;
 
   return (
@@ -198,44 +167,23 @@ const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet, onPetUpdated }) => {
           </View>
         </View>
 
-        {/* Action buttons - Según documentación:
-            - Marcar como encontrada: dueño O reportante
-            - Eliminar reporte: solo reportante Y sin dueño
-        */}
-        {(canMarkAsFound || canDelete) && (
+        {/* Action buttons - En Perdidos solo "Eliminar Reporte" para reportante sin dueño */}
+        {canDelete && (
           <View style={styles.actionsSection}>
-            {canMarkAsFound && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.foundButton]}
-                onPress={handleMarkAsFound}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <MaterialIcons name="check-circle" size={18} color="#fff" />
-                    <Text style={styles.actionButtonText}>Marcar como Encontrada</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-            {canDelete && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.deleteButton]}
-                onPress={handleDeleteReport}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <MaterialIcons name="delete" size={18} color="#fff" />
-                    <Text style={styles.actionButtonText}>Eliminar Reporte</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[styles.actionButton, styles.deleteButton]}
+              onPress={handleDeleteReport}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <MaterialIcons name="delete" size={18} color="#fff" />
+                  <Text style={styles.actionButtonText}>Eliminar mi Reporte</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         )}
       </View>
