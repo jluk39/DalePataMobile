@@ -10,9 +10,10 @@ interface PetCardProps {
   showOwnerActions?: boolean
   onPetEdited?: (pet: Pet) => void
   onPetDeleted?: (petId: number | string) => void
+  onReportLost?: (pet: Pet) => void
 }
 
-export function PetCard({ pet, onPress, showOwnerActions = false, onPetEdited, onPetDeleted }: PetCardProps) {
+export function PetCard({ pet, onPress, showOwnerActions = false, onPetEdited, onPetDeleted, onReportLost }: PetCardProps) {
   const [isDeleting, setIsDeleting] = useState(false)
 
   const handleEditClick = () => {
@@ -157,7 +158,7 @@ export function PetCard({ pet, onPress, showOwnerActions = false, onPetEdited, o
         </View>
       </TouchableOpacity>
 
-      {/* Botones de Editar y Eliminar - Fuera del TouchableOpacity padre */}
+      {/* Botones de Acciones - Fuera del TouchableOpacity padre */}
       {showOwnerActions && (
         <View style={styles.actionsContainer}>
           <TouchableOpacity
@@ -168,6 +169,16 @@ export function PetCard({ pet, onPress, showOwnerActions = false, onPetEdited, o
           >
             <MaterialIcons name="edit" size={18} color={theme.colors.primaryForeground} />
             <Text style={styles.actionButtonText}>Editar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.reportButton]}
+            onPress={() => onReportLost && onReportLost(pet)}
+            disabled={isDeleting}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="location-off" size={18} color="#FFF" />
+            <Text style={styles.reportButtonText}>Perdida</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -254,6 +265,9 @@ const styles = StyleSheet.create({
   editButton: {
     backgroundColor: theme.colors.primary,
   },
+  reportButton: {
+    backgroundColor: '#F97316', // Orange/warning color
+  },
   deleteButton: {
     backgroundColor: theme.colors.destructive,
   },
@@ -261,6 +275,11 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.sm,
     fontWeight: '600',
     color: theme.colors.primaryForeground,
+  },
+  reportButtonText: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: '600',
+    color: '#fff',
   },
   deleteButtonText: {
     fontSize: theme.fontSize.sm,

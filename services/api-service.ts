@@ -1095,4 +1095,287 @@ export class ApiService {
   static async cancelAdoptionRequest(requestId: number): Promise<void> {
     return this.cancelAdoption(requestId)
   }
+
+  // ========================================
+  // LOST PETS ENDPOINTS
+  // ========================================
+
+  /**
+   * ✅ Listar todas las mascotas perdidas
+   * Endpoint: GET /api/mascotas-perdidas/listar
+   */
+  static async fetchLostPets(): Promise<any[]> {
+    try {
+      const token = await StorageService.getToken()
+      
+      if (!token) {
+        throw new Error('No estás autenticado')
+      }
+
+      console.log('📤 GET /api/mascotas/perdidas')
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/mascotas/perdidas`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      const result = await this.handleResponse(response)
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Error al obtener mascotas perdidas')
+      }
+
+      console.log('✅ Mascotas perdidas obtenidas:', result.data?.length || 0)
+      
+      // Mapear los datos del backend al formato del frontend
+      return result.data.map((pet: any) => ({
+        // IDs y datos de identificación
+        id: pet.id?.toString() || '',
+        name: pet.nombre || 'Sin nombre',
+        nombre: pet.nombre,
+        
+        // Características físicas
+        breed: pet.raza || 'Sin raza especificada',
+        raza: pet.raza,
+        age: pet.edad || 'Edad desconocida',
+        edad: pet.edad,
+        gender: pet.sexo || 'Desconocido',
+        genero: pet.sexo,
+        sexo: pet.sexo,
+        color: pet.color || 'No especificado',
+        size: pet.tamanio || 'No especificado',
+        tamanio: pet.tamanio,
+        especie: pet.especie,
+        species: pet.especie,
+        
+        // Imagen
+        image: pet.imagen || 'https://via.placeholder.com/300x200?text=Sin+Foto',
+        imagen: pet.imagen,
+        
+        // Datos de ubicación y pérdida
+        location: pet.perdida_direccion || 'Ubicación no especificada',
+        perdida_direccion: pet.perdida_direccion,
+        lat: pet.perdida_lat || 0,
+        perdida_lat: pet.perdida_lat,
+        lon: pet.perdida_lon || 0,
+        perdida_lon: pet.perdida_lon,
+        lastSeen: pet.perdida_fecha || new Date().toISOString(),
+        perdida_fecha: pet.perdida_fecha,
+        lostDate: pet.perdida_fecha,
+        
+        // Descripción
+        description: pet.descripcion || 'Sin descripción disponible',
+        descripcion: pet.descripcion,
+        
+        // Estados
+        perdida: pet.perdida !== undefined ? pet.perdida : true,
+        encontrada: pet.encontrada !== undefined ? pet.encontrada : false,
+        
+        // Información de contacto - Priorizar dueño si existe, sino quien reportó
+        contactPhone: pet.duenio?.telefono || pet.reportado_por?.telefono || 'No disponible',
+        contactEmail: pet.duenio?.email || pet.reportado_por?.email || 'No disponible',
+        contactName: pet.duenio?.nombre || pet.reportado_por?.nombre || 'No disponible',
+        
+        // Ownership data (para botones de acción)
+        duenio: pet.duenio, // { id, nombre, telefono, email }
+        owner: pet.duenio,
+        ownerId: pet.duenio?.id,
+        reportado_por: pet.reportado_por, // { id, nombre, telefono, email }
+        reportedBy: pet.reportado_por,
+        reportedById: pet.reportado_por?.id,
+        
+        // Datos adicionales
+        estado_salud: pet.estado_salud,
+        healthStatus: pet.estado_salud,
+      }))
+    } catch (error) {
+      console.error('❌ Error fetching lost pets:', error)
+      throw error
+    }
+  }
+
+  /**
+   * ✅ Reportar mascota propia como perdida
+   * Endpoint: POST /api/mascotas/{petId}/reportar-perdida
+   * Content-Type: application/json
+   * @param petId - ID de la mascota
+   * @param data - { perdida_direccion, perdida_lat, perdida_lon, perdida_fecha, descripcion }
+   */
+  static async reportPetAsLost(
+    petId: number | string,
+    data: {
+      perdida_direccion: string
+      perdida_lat: number
+      perdida_lon: number
+      perdida_fecha: string // ISO date string
+      descripcion?: string
+    }
+  ): Promise<any> {
+    try {
+      const token = await StorageService.getToken()
+      
+      if (!token) {
+        throw new Error('Usuario no autenticado')
+      }
+
+      console.log(`📤 POST /api/mascotas/${petId}/reportar-perdida`, data)
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/mascotas/${petId}/reportar-perdida`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await this.handleResponse(response)
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Error al reportar mascota perdida')
+      }
+
+      console.log('✅ Mascota reportada como perdida:', result.data)
+      return result
+    } catch (error) {
+      console.error('🔥 Error al reportar mascota perdida:', error)
+      throw error
+    }
+  }
+
+  /**
+   * ✅ Marcar mascota como encontrada
+   * Endpoint: PUT /api/mascotas/{petId}/marcar-encontrada
+   * Content-Type: application/json
+   * Solo el dueño (duenio.id === user.id) o reportante (reportado_por.id === user.id) puede marcar
+   * @param petId - ID de la mascota
+   * @param comentario - Comentario opcional
+   */
+  static async markPetAsFound(
+    petId: number | string,
+    comentario: string = ''
+  ): Promise<any> {
+    try {
+      const token = await StorageService.getToken()
+      
+      if (!token) {
+        throw new Error('Usuario no autenticado')
+      }
+
+      console.log(`📤 PUT /api/mascotas/${petId}/marcar-encontrada`)
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/mascotas/${petId}/marcar-encontrada`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ comentario }),
+      })
+
+      const result = await this.handleResponse(response)
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Error al marcar mascota como encontrada')
+      }
+
+      console.log('✅ Mascota marcada como encontrada:', result.data)
+      return result
+    } catch (error) {
+      console.error('🔥 Error al marcar mascota como encontrada:', error)
+      throw error
+    }
+  }
+
+  /**
+   * ✅ Reportar mascota ajena encontrada (avistamiento)
+   * Endpoint: POST /api/mascotas/reportar-avistamiento
+   * Content-Type: multipart/form-data
+   * @param formData - FormData con:
+   *   - nombre: string (requerido)
+   *   - especie: "Perro" | "Gato" (requerido)
+   *   - raza: string (opcional)
+   *   - sexo: "Macho" | "Hembra" (opcional)
+   *   - tamanio: "Pequeño" | "Mediano" | "Grande" (opcional)
+   *   - color: string (opcional)
+   *   - descripcion: string (opcional)
+   *   - perdida_direccion: string (requerido)
+   *   - perdida_lat: number (requerido)
+   *   - perdida_lon: number (requerido)
+   *   - perdida_fecha: ISO string (requerido)
+   *   - imagen: File (requerido, max 5MB)
+   */
+  static async reportFoundPet(formData: FormData): Promise<any> {
+    try {
+      const token = await StorageService.getToken()
+      
+      if (!token) {
+        throw new Error('Usuario no autenticado')
+      }
+
+      console.log('📤 POST /api/mascotas/reportar-avistamiento (FormData)')
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/mascotas/reportar-avistamiento`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // NO incluir Content-Type para FormData - el browser lo establece automáticamente
+        },
+        body: formData,
+      })
+
+      const result = await this.handleResponse(response)
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Error al reportar mascota encontrada')
+      }
+
+      console.log('✅ Mascota encontrada reportada exitosamente:', result.data)
+      return result
+    } catch (error) {
+      console.error('🔥 Error al reportar mascota encontrada:', error)
+      throw error
+    }
+  }
+
+  /**
+   * ✅ Eliminar reporte de mascota perdida
+   * Endpoint: DELETE /api/mascotas-perdidas/{petId}
+   * Solo el reportante (reportado_por.id === user.id) puede eliminar
+   * Solo para mascotas SIN dueño (duenio === null)
+   * @param petId - ID de la mascota reportada
+   */
+  static async deleteLostPetReport(petId: number | string): Promise<any> {
+    try {
+      const token = await StorageService.getToken()
+      
+      if (!token) {
+        throw new Error('Usuario no autenticado')
+      }
+
+      console.log(`🗑️ DELETE /api/mascotas/reporte-avistamiento/${petId}`)
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/mascotas/reporte-avistamiento/${petId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      const result = await this.handleResponse(response)
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Error al eliminar reporte')
+      }
+
+      console.log('✅ Reporte eliminado:', result.data)
+      return result
+    } catch (error) {
+      console.error('🔥 Error al eliminar reporte:', error)
+      throw error
+    }
+  }
 }

@@ -1,8 +1,11 @@
-import { LostPet } from '@/constants/mockLostPets';
 import { theme } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
+import { ApiService } from '@/services';
+import { LostPet } from '@/types/lostPets';
 import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Image,
     Linking,
@@ -14,9 +17,12 @@ import {
 
 interface LostFoundCardProps {
   pet: LostPet;
+  onPetUpdated?: () => void; // Callback to refresh the list after marking as found or deleting
 }
 
-const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet }) => {
+const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet, onPetUpdated }) => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-AR', {
@@ -39,13 +45,75 @@ const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet }) => {
     });
   };
 
-  const getStatusConfig = () => {
-    return pet.status === 'lost'
-      ? { color: theme.colors.destructive, label: 'Perdido' }
-      : { color: '#3B82F6', label: 'Encontrado' };
+  const handleMarkAsFound = async () => {
+    Alert.alert(
+      'Marcar como Encontrada',
+      '¿Estás seguro de que quieres marcar esta mascota como encontrada?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, marcar',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await ApiService.markPetAsFound(pet.id.toString());
+              Alert.alert('¡Éxito!', 'La mascota ha sido marcada como encontrada.');
+              onPetUpdated?.();
+            } catch (error: any) {
+              console.error('Error marking pet as found:', error);
+              Alert.alert('Error', error.message || 'No se pudo marcar la mascota como encontrada.');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
-  const statusConfig = getStatusConfig();
+  const handleDeleteReport = async () => {
+    Alert.alert(
+      'Eliminar Reporte',
+      '¿Estás seguro de que quieres eliminar este reporte?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await ApiService.deleteLostPetReport(pet.id.toString());
+              Alert.alert('Eliminado', 'El reporte ha sido eliminado exitosamente.');
+              onPetUpdated?.();
+            } catch (error: any) {
+              console.error('Error deleting report:', error);
+              Alert.alert('Error', error.message || 'No se pudo eliminar el reporte.');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Lógica de ownership según documentación:
+  // - Si tiene dueño (duenio): el dueño puede marcar como encontrada
+  // - Si tiene reportado_por (sin dueño): el reportante puede marcar como encontrada o eliminar
+  const hasDuenio = !!pet.duenio;
+  
+  // El usuario es dueño si pet.duenio.id === user.id
+  const isOwner = user && pet.duenio && pet.duenio.id === user.id;
+  
+  // El usuario es reportante si pet.reportado_por.id === user.id
+  const isReporter = user && pet.reportado_por && pet.reportado_por.id === user.id;
+  
+  // Puede marcar como encontrada: dueño O reportante
+  const canMarkAsFound = isOwner || isReporter;
+  
+  // Puede eliminar: solo reportante Y sin dueño
+  const canDelete = isReporter && !hasDuenio;
 
   return (
     <View style={styles.card}>
@@ -57,27 +125,14 @@ const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet }) => {
           resizeMode="cover"
         />
         
-        {/* Badges superiores */}
+        {/* Badge de estado */}
         <View style={styles.badgesContainer}>
-          <View style={[styles.badge, { backgroundColor: statusConfig.color }]}>
-            <Text style={styles.badgeText}>{statusConfig.label}</Text>
+          <View style={[styles.badge, { backgroundColor: theme.colors.destructive }]}>
+            <Text style={styles.badgeText}>
+              {pet.perdida && !pet.encontrada ? 'Perdido' : pet.encontrada ? 'Encontrado' : 'Perdido'}
+            </Text>
           </View>
-          
-          {pet.urgent && (
-            <View style={[styles.badge, styles.urgentBadge]}>
-              <MaterialIcons name="warning" size={12} color="#FFF" />
-              <Text style={styles.badgeText}>Urgente</Text>
-            </View>
-          )}
         </View>
-
-        {/* Badge de recompensa */}
-        {pet.reward && (
-          <View style={styles.rewardBadge}>
-            <MaterialIcons name="card-giftcard" size={12} color="#FFF" />
-            <Text style={styles.badgeText}>Recompensa</Text>
-          </View>
-        )}
       </View>
 
       {/* Contenido */}
@@ -112,8 +167,7 @@ const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet }) => {
               color={theme.colors.mutedForeground}
             />
             <Text style={styles.detailText}>
-              {pet.status === 'lost' ? 'Perdido el' : 'Encontrado el'}{' '}
-              {formatDate(pet.lastSeen)}
+              Perdido el {formatDate(pet.lastSeen)}
             </Text>
           </View>
         </View>
@@ -122,13 +176,6 @@ const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet }) => {
         <Text style={styles.description} numberOfLines={2}>
           {pet.description}
         </Text>
-
-        {/* Sección de recompensa */}
-        {pet.reward && (
-          <View style={styles.rewardSection}>
-            <Text style={styles.rewardText}>💰 Recompensa</Text>
-          </View>
-        )}
 
         {/* Botones de contacto */}
         <View style={styles.contactSection}>
@@ -150,6 +197,47 @@ const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet }) => {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Action buttons - Según documentación:
+            - Marcar como encontrada: dueño O reportante
+            - Eliminar reporte: solo reportante Y sin dueño
+        */}
+        {(canMarkAsFound || canDelete) && (
+          <View style={styles.actionsSection}>
+            {canMarkAsFound && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.foundButton]}
+                onPress={handleMarkAsFound}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <MaterialIcons name="check-circle" size={18} color="#fff" />
+                    <Text style={styles.actionButtonText}>Marcar como Encontrada</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+            {canDelete && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.deleteButton]}
+                onPress={handleDeleteReport}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <MaterialIcons name="delete" size={18} color="#fff" />
+                    <Text style={styles.actionButtonText}>Eliminar Reporte</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -187,21 +275,6 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
-  },
-  urgentBadge: {
-    backgroundColor: '#F97316',
-  },
-  rewardBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#16A34A',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -249,20 +322,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: theme.spacing.md,
   },
-  rewardSection: {
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#86EFAC',
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
-  },
-  rewardText: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: '600',
-    color: '#16A34A',
-    textAlign: 'center',
-  },
   contactSection: {
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
@@ -294,6 +353,32 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.sm,
     fontWeight: '600',
     color: theme.colors.primary,
+  },
+  actionsSection: {
+    marginTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    paddingTop: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.xs,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+  },
+  foundButton: {
+    backgroundColor: '#10B981', // Green for success
+  },
+  deleteButton: {
+    backgroundColor: theme.colors.destructive,
+  },
+  actionButtonText: {
+    fontSize: theme.fontSize.sm,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 

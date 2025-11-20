@@ -9,6 +9,7 @@ import { Button } from '../ui/Button'
 import { AddPetModal } from './AddPetModal'
 import { EditPetModal } from './EditPetModal'
 import { PetCard } from './PetCard'
+import ReportLostModal from './ReportLostModal'
 
 const { width } = Dimensions.get('window')
 const numColumns = width > 768 ? 2 : 1 // 2 columnas en tablet, 1 en phone
@@ -21,6 +22,7 @@ export function MyPetsGrid() {
   const [error, setError] = useState<string | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showReportLostModal, setShowReportLostModal] = useState(false)
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null)
 
   useEffect(() => {
@@ -97,6 +99,12 @@ export function MyPetsGrid() {
     console.log('🗑️ Mascota eliminada, actualizando lista...', petId)
     // Remover la mascota de la lista local
     setPets((prevPets) => prevPets.filter((p) => p.id !== petId))
+  }
+
+  const handleReportLost = (pet: Pet) => {
+    console.log('📍 Reportando mascota como perdida:', pet.name)
+    setSelectedPet(pet)
+    setShowReportLostModal(true)
   }
 
   const handleRetry = () => {
@@ -194,6 +202,7 @@ export function MyPetsGrid() {
               showOwnerActions={true}
               onPetEdited={handleEditPet}
               onPetDeleted={handlePetDeleted}
+              onReportLost={handleReportLost}
             />
           </View>
         )}
@@ -219,6 +228,17 @@ export function MyPetsGrid() {
         }}
         pet={selectedPet}
         onSuccess={handlePetEdited}
+      />
+
+      {/* Modal de reportar mascota perdida */}
+      <ReportLostModal
+        visible={showReportLostModal}
+        onClose={() => {
+          setShowReportLostModal(false)
+          setSelectedPet(null)
+        }}
+        pet={selectedPet}
+        onSuccess={handlePetAdded}
       />
     </View>
   )

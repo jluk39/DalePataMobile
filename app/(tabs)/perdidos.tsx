@@ -1,8 +1,10 @@
 import LostFoundCard from '@/components/perdidos/LostFoundCard';
 import MapaPerdidos from '@/components/perdidos/MapaPerdidos';
-import { fetchMockLostPets, LostPet } from '@/constants/mockLostPets';
 import { theme } from '@/constants/theme';
+import { ApiService } from '@/services';
+import { LostPet } from '@/types/lostPets';
 import { MaterialIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -18,7 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 type TabType = 'list' | 'map';
 
-// Deshabilitar temporalmente el mapa hasta tener development build
+// ✅ Mapa habilitado para development build
 const MAP_AVAILABLE = true;
 
 export default function PerdidosScreen() {
@@ -27,14 +29,19 @@ export default function PerdidosScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Cargar mascotas perdidas
+  // ✅ Cargar mascotas perdidas desde el backend
   const loadLostPets = useCallback(async () => {
     try {
-      const data = await fetchMockLostPets();
+      console.log('📤 Cargando mascotas perdidas...');
+      const data = await ApiService.fetchLostPets();
+      console.log('✅ Mascotas perdidas cargadas:', data.length);
       setLostPets(data);
     } catch (error: any) {
-      console.error('Error loading lost pets:', error);
-      Alert.alert('Error', 'No se pudieron cargar las mascotas perdidas');
+      console.error('❌ Error loading lost pets:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'No se pudieron cargar las mascotas perdidas'
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -51,15 +58,13 @@ export default function PerdidosScreen() {
   }, [loadLostPets]);
 
   const handleReportPet = () => {
-    Alert.alert(
-      'Próximamente',
-      'La funcionalidad de reportar mascotas estará disponible cuando el backend esté completo.'
-    );
+    // Navegar al formulario de reportar mascota encontrada
+    router.push('/(tabs)/perdidos/reportar' as any);
   };
 
   // Renderizar tarjeta de mascota
   const renderPetCard = ({ item }: { item: LostPet }) => (
-    <LostFoundCard pet={item} />
+    <LostFoundCard pet={item} onPetUpdated={loadLostPets} />
   );
 
   // Vista vacía
