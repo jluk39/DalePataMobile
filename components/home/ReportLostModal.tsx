@@ -22,7 +22,7 @@ interface ReportLostModalProps {
   pet: Pet | null;
   visible: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (updatedPet?: any) => void; // ✅ Ahora puede recibir la mascota actualizada
 }
 
 const ReportLostModal: React.FC<ReportLostModalProps> = ({
@@ -93,7 +93,9 @@ const ReportLostModal: React.FC<ReportLostModalProps> = ({
 
       console.log('📤 Reportando mascota perdida:', reportData);
 
-      await ApiService.reportPetAsLost(pet.id, reportData);
+      const response = await ApiService.reportPetAsLost(pet.id, reportData);
+      
+      console.log('✅ Respuesta del backend:', response);
 
       Alert.alert(
         '¡Mascota reportada!',
@@ -108,7 +110,8 @@ const ReportLostModal: React.FC<ReportLostModalProps> = ({
               setAcceptTerms(false);
               setLocationData({ address: '', lat: 0, lon: 0 });
               onClose();
-              onSuccess();
+              // ✅ Pasar los datos actualizados del backend
+              onSuccess(response.data);
             },
           },
         ]

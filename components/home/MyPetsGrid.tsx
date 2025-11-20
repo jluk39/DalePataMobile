@@ -107,6 +107,30 @@ export function MyPetsGrid() {
     setShowReportLostModal(true)
   }
 
+  const handlePetReportedAsLost = (updatedPetData?: any) => {
+    console.log('✅ Mascota reportada como perdida, actualizando estado local:', updatedPetData)
+    
+    if (updatedPetData) {
+      // Actualizar la mascota específica en el estado local
+      setPets(prevPets => prevPets.map(pet => 
+        pet.id.toString() === updatedPetData.id?.toString()
+          ? {
+              ...pet,
+              perdida: true,
+              isLost: true,
+              perdida_direccion: updatedPetData.perdida_direccion,
+              perdida_lat: updatedPetData.perdida_lat,
+              perdida_lon: updatedPetData.perdida_lon,
+              perdida_fecha: updatedPetData.perdida_fecha,
+            }
+          : pet
+      ))
+    } else {
+      // Si no hay datos, recargar todo (fallback)
+      handlePetAdded()
+    }
+  }
+
   const handleMarkAsFound = async (pet: Pet) => {
     console.log('✅ Marcando mascota como encontrada:', pet.name)
     Alert.alert(
@@ -263,7 +287,7 @@ export function MyPetsGrid() {
           setSelectedPet(null)
         }}
         pet={selectedPet}
-        onSuccess={handlePetAdded}
+        onSuccess={handlePetReportedAsLost}
       />
     </View>
   )

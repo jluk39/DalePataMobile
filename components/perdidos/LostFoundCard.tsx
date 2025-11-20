@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ApiService } from '@/services';
 import { LostPet } from '@/types/lostPets';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -22,6 +23,7 @@ interface LostFoundCardProps {
 
 const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet, onPetUpdated }) => {
   const { user } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -73,10 +75,13 @@ const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet, onPetUpdated }) => {
   };
 
   // Lógica de ownership según documentación y frontend-web:
-  // EN PERDIDOS solo aparecen mascotas SIN dueño (reportado_por pero sin duenio)
-  // - El reportante puede ELIMINAR su reporte (botón rojo)
-  // - NO se muestra "Marcar como encontrada" aquí (eso es en Mis Mascotas)
+  // Las mascotas CON dueño también aparecen en /api/mascotas/perdidas
+  // Si es MI mascota → Mostrar mensaje especial + botón "Ir a Mis Mascotas"
+  // Si NO tiene dueño → Mostrar botón "Eliminar mi Reporte"
   const hasDuenio = !!pet.duenio;
+  
+  // Verificar si es MI mascota
+  const isMyPet = user && pet.duenio && pet.duenio.id === user.id;
   
   // El usuario es reportante si pet.reportado_por.id === user.id
   const isReporter = user && pet.reportado_por && pet.reportado_por.id === user.id;
@@ -84,6 +89,85 @@ const LostFoundCard: React.FC<LostFoundCardProps> = ({ pet, onPetUpdated }) => {
   // En la sección Perdidos: solo puede ELIMINAR el reportante Y sin dueño
   const canDelete = isReporter && !hasDuenio;
 
+  // Si es MI mascota, mostrar card especial
+  if (isMyPet) {
+    return (
+      <View style={[styles.card, styles.myPetCard]}>
+        {/* Imagen */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: pet.image }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+          
+          {/* Badge especial */}
+          <View style={styles.badgesContainer}>
+            <View style={[styles.badge, { backgroundColor: '#3B82F6' }]}>
+              <Text style={styles.badgeText}>Tu Mascota</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Contenido */}
+        <View style={styles.content}>
+          {/* Información principal */}
+          <View style={styles.infoSection}>
+            <Text style={styles.name}>{pet.name}</Text>
+            <Text style={styles.details}>
+              {pet.breed} • {pet.age} • {pet.gender}
+            </Text>
+            <Text style={styles.details}>
+              {pet.color} • {pet.size}
+            </Text>
+          </View>
+
+          {/* Detalles con iconos */}
+          <View style={styles.detailsSection}>
+            <View style={styles.detailRow}>
+              <MaterialIcons
+                name="location-on"
+                size={16}
+                color={theme.colors.mutedForeground}
+              />
+              <Text style={styles.detailText} numberOfLines={1}>
+                {pet.location}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialIcons
+                name="event"
+                size={16}
+                color={theme.colors.mutedForeground}
+              />
+              <Text style={styles.detailText}>
+                Perdido el {formatDate(pet.lastSeen)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Mensaje especial */}
+          <View style={styles.myPetAlert}>
+            <MaterialIcons name="info" size={20} color="#3B82F6" />
+            <Text style={styles.myPetAlertText}>
+              Esta es tu mascota. Para marcarla como encontrada o gestionar su información, ve a la sección de Mis Mascotas.
+            </Text>
+          </View>
+
+          {/* Botón especial */}
+          <TouchableOpacity
+            style={styles.myPetButton}
+            onPress={() => router.push('/(tabs)/home')}
+          >
+            <MaterialIcons name="home" size={20} color="#FFF" />
+            <Text style={styles.myPetButtonText}>Ir a Mis Mascotas</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Card normal para mascotas sin dueño
   return (
     <View style={styles.card}>
       {/* Imagen */}
@@ -327,6 +411,42 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.sm,
     fontWeight: '600',
     color: '#fff',
+  },
+  // Estilos para "Mi Mascota" (card especial)
+  myPetCard: {
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    backgroundColor: '#EFF6FF', // Fondo azul claro
+  },
+  myPetAlert: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
+    backgroundColor: '#DBEAFE',
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+    marginBottom: theme.spacing.md,
+  },
+  myPetAlertText: {
+    flex: 1,
+    fontSize: theme.fontSize.sm,
+    color: '#1E40AF',
+    lineHeight: 20,
+  },
+  myPetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    backgroundColor: '#3B82F6',
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+  },
+  myPetButtonText: {
+    fontSize: theme.fontSize.base,
+    fontWeight: '600',
+    color: '#FFF',
   },
 });
 

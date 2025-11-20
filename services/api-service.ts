@@ -171,6 +171,13 @@ export class ApiService {
         urgent: false,
         status: pet.estado_salud,
         isOwned: true,
+        // ✅ Campos de pérdida
+        perdida: pet.esta_perdida || pet.perdida || false,
+        isLost: pet.esta_perdida || pet.perdida || false,
+        perdida_direccion: pet.perdida_direccion,
+        perdida_lat: pet.perdida_lat,
+        perdida_lon: pet.perdida_lon,
+        perdida_fecha: pet.perdida_fecha,
       }))
     } catch (error) {
       console.error('Error fetching my pets:', error)
