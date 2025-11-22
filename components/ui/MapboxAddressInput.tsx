@@ -1,5 +1,6 @@
 import { theme } from '@/constants/theme';
 import { MaterialIcons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -12,7 +13,7 @@ import {
 } from 'react-native';
 
 // Usar token desde variable de entorno
-const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || '';
+const MAPBOX_TOKEN = Constants.expoConfig?.extra?.mapboxToken || process.env.EXPO_PUBLIC_MAPBOX_TOKEN || '';
 
 interface MapboxFeature {
   id: string;

@@ -2,6 +2,7 @@ import { theme } from '@/constants/theme';
 import { LostPet } from '@/types/lostPets';
 import { MaterialIcons } from '@expo/vector-icons';
 import MapboxGL from '@rnmapbox/maps';
+import Constants from 'expo-constants';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -15,7 +16,7 @@ import {
 } from 'react-native';
 
 // Configurar token de Mapbox
-const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN || '';
+const MAPBOX_TOKEN = Constants.expoConfig?.extra?.mapboxToken || process.env.EXPO_PUBLIC_MAPBOX_TOKEN || '';
 
 if (MAPBOX_TOKEN) {
   MapboxGL.setAccessToken(MAPBOX_TOKEN);

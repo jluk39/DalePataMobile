@@ -1,14 +1,16 @@
+import Constants from 'expo-constants';
+
 // API Configuration for DalePata Mobile
 export const API_CONFIG = {
-  BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001/api',
+  BASE_URL: Constants.expoConfig?.extra?.apiBaseUrl || process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.dalepata.com/api',
   TIMEOUT: 30000,
   DEBUG: __DEV__, // Activa logs en desarrollo
 }
 
 // Optional: Supabase configuration (if needed)
 export const SUPABASE_CONFIG = {
-  URL: process.env.EXPO_PUBLIC_SUPABASE_URL || '',
-  ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+  URL: Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || '',
+  ANON_KEY: Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
 }
 
 export const API_ENDPOINTS = {
