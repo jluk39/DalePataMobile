@@ -1,17 +1,18 @@
 import { theme } from '@/constants/theme'
 import { useAuth } from '@/contexts/AuthContext'
+import { ApiService } from '@/services/api-service'
 import { MaterialIcons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
-import React, { useRef, useState } from 'react'
+import { useFocusEffect, useRouter } from 'expo-router'
+import React, { useCallback, useRef, useState } from 'react'
 import {
-    Animated,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Animated,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native'
 import { Button } from '../ui/Button'
 
@@ -19,7 +20,30 @@ export function HeaderBar() {
   const { user, signOut } = useAuth()
   const router = useRouter()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const fadeAnim = useRef(new Animated.Value(0)).current
+
+  // ✅ Actualizar contador de notificaciones al entrar/volver a la pantalla
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadUnreadCount()
+      }
+    }, [user])
+  )
+
+  const loadUnreadCount = async () => {
+    try {
+      const count = await ApiService.getUnreadNotificationsCount()
+      setUnreadCount(count)
+    } catch (error) {
+      console.error('Error loading unread count:', error)
+    }
+  }
+
+  const handleNotificationsClick = () => {
+    router.push('/(tabs)/notificaciones' as any)
+  }
 
   const handleProfileClick = () => {
     setDropdownOpen(false)
@@ -69,10 +93,19 @@ export function HeaderBar() {
 
       {/* Acciones */}
       <View style={styles.actions}>
-        {/* Botón de notificaciones */}
-        <Button variant="ghost" size="icon" onPress={() => console.log('Notificaciones')}>
-          <MaterialIcons name="notifications" size={24} color={theme.colors.foreground} />
-        </Button>
+        {/* Botón de notificaciones con contador */}
+        <View style={styles.notificationContainer}>
+          <Button variant="ghost" size="icon" onPress={handleNotificationsClick}>
+            <MaterialIcons name="notifications" size={24} color={theme.colors.foreground} />
+          </Button>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </View>
+          )}
+        </View>
 
         {/* Usuario */}
         {user ? (
@@ -216,6 +249,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
+  },
+  notificationContainer: {
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: theme.colors.destructive,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    borderWidth: 2,
+    borderColor: theme.colors.card,
+  },
+  badgeText: {
+    color: theme.colors.destructiveForeground,
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   authButtons: {
     flexDirection: 'row',

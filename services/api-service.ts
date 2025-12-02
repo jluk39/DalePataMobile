@@ -1385,4 +1385,131 @@ export class ApiService {
       throw error
     }
   }
+
+  // ========================================
+  // NOTIFICACIONES VIRTUALES (SOLO FRONTEND)
+  // ========================================
+
+  /**
+   * 🔔 Generar notificaciones virtuales
+   * 
+   * ⚠️ ESTO NO ES UN ENDPOINT DE LA API
+   * Se genera EN EL FRONTEND a partir de las solicitudes
+   * 
+   * Lógica:
+   * 1. Obtener solicitudes del usuario (GET /solicitudes/mis-solicitudes)
+   * 2. Filtrar solo las aprobadas/rechazadas de últimos 30 días
+   * 3. Comparar con lista de "leídas" en AsyncStorage
+   * 4. Retornar array de notificaciones
+   * 
+   * @returns Array de notificaciones virtuales
+   */
+  static async getVirtualNotifications(): Promise<any[]> {
+    try {
+      console.log('🔔 Generando notificaciones virtuales...')
+      
+      // 1. Obtener solicitudes del usuario
+      const solicitudes = await this.getMyAdoptionRequests()
+      console.log(`📋 Solicitudes obtenidas: ${solicitudes?.length || 0}`)
+      
+      if (!solicitudes || solicitudes.length === 0) {
+        return []
+      }
+      
+      // 2. Filtrar últimos 30 días
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      
+      // 3. Obtener lista de notificaciones leídas desde AsyncStorage
+      const readNotifications = await StorageService.getReadNotifications()
+      console.log(`📖 Notificaciones leídas: ${readNotifications.length}`)
+      
+      // 4. Generar notificaciones desde solicitudes
+      const notifications = solicitudes
+        .filter(s => {
+          // Solo aprobadas o rechazadas
+          const isRelevantStatus = s.estado === 'aprobada' || s.estado === 'rechazada'
+          
+          // Solo si tiene fecha de decisión
+          const hasDecisionDate = !!s.fecha_decision
+          
+          // Solo de últimos 30 días
+          const isRecent = s.fecha_decision && 
+            new Date(s.fecha_decision) > thirtyDaysAgo
+          
+          return isRelevantStatus && hasDecisionDate && isRecent
+        })
+        .map(s => {
+          const daysSinceDecision = s.fecha_decision 
+            ? (new Date().getTime() - new Date(s.fecha_decision).getTime()) / (1000 * 60 * 60 * 24)
+            : 999
+          
+          return {
+            id: `solicitud-${s.id}`,
+            solicitudId: s.id,
+            tipo: 'solicitud_adopcion',
+            estado: s.estado,
+            mascota: s.mascota?.nombre || 'Mascota',
+            mascotaImagen: s.mascota?.imagen,
+            mascotaId: s.mascota?.id,
+            fecha: s.fecha_decision,
+            comentario: s.comentario_refugio,
+            // Auto-marcar como leída después de 7 días
+            leida: readNotifications.includes(s.id) || daysSinceDecision > 7
+          }
+        })
+        .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+
+      console.log(`✅ Notificaciones generadas: ${notifications.length}`)
+      console.log(`🔔 Sin leer: ${notifications.filter(n => !n.leida).length}`)
+      
+      return notifications
+    } catch (error) {
+      console.error('❌ Error getting virtual notifications:', error)
+      return []
+    }
+  }
+
+  /**
+   * 📖 Marcar notificación como leída (AsyncStorage)
+   * @param solicitudId - ID de la solicitud a marcar como leída
+   */
+  static async markNotificationAsRead(solicitudId: number): Promise<void> {
+    try {
+      console.log(`📖 Marcando notificación ${solicitudId} como leída`)
+      await StorageService.addReadNotification(solicitudId)
+    } catch (error) {
+      console.error('❌ Error marking notification as read:', error)
+    }
+  }
+
+  /**
+   * 📚 Marcar todas las notificaciones como leídas
+   * @param solicitudIds - Array de IDs de solicitudes
+   */
+  static async markAllNotificationsAsRead(solicitudIds: number[]): Promise<void> {
+    try {
+      console.log(`📚 Marcando ${solicitudIds.length} notificaciones como leídas`)
+      await StorageService.setReadNotifications(solicitudIds)
+    } catch (error) {
+      console.error('❌ Error marking all notifications as read:', error)
+    }
+  }
+
+  /**
+   * 🔢 Contar notificaciones sin leer
+   * @returns Cantidad de notificaciones sin leer
+   */
+  static async getUnreadNotificationsCount(): Promise<number> {
+    try {
+      const notifications = await this.getVirtualNotifications()
+      const unreadCount = notifications.filter(n => !n.leida).length
+      console.log(`🔢 Notificaciones sin leer: ${unreadCount}`)
+      return unreadCount
+    } catch (error) {
+      console.error('❌ Error counting unread notifications:', error)
+      return 0
+    }
+  }
 }
+

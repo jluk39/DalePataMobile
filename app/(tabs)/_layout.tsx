@@ -76,6 +76,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="notificaciones"
+        options={{
+          href: null, // Ocultar del tab bar, solo accesible desde el botón del header
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           href: null, // Ocultar la pantalla original index
