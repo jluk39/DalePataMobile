@@ -12,6 +12,7 @@ export default {
       supportsTablet: true,
       bundleIdentifier: "com.dalepata.app",
       infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
         NSLocationWhenInUseUsageDescription: "Esta aplicación necesita acceder a tu ubicación para mostrar mascotas perdidas cercanas en el mapa.",
         NSLocationAlwaysUsageDescription: "Esta aplicación necesita acceder a tu ubicación para mostrar mascotas perdidas cercanas en el mapa.",
         NSCameraUsageDescription: "Esta aplicación necesita acceso a la cámara para tomar fotos de mascotas.",
@@ -21,9 +22,9 @@ export default {
     android: {
       adaptiveIcon: {
         backgroundColor: "#89c7a8",
-        foregroundImage: "./assets/images/android-icon-foreground.png",
-        backgroundImage: "./assets/images/android-icon-background.png",
-        monochromeImage: "./assets/images/android-icon-monochrome.png"
+        foregroundImage: "./assets/images/icon.png",
+        //backgroundImage: "./assets/images/android-icon-background.png",
+        //monochromeImage: "./assets/images/android-icon-monochrome.png"
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
